@@ -1,0 +1,31 @@
+# Build artifacts
+build/
+bin/
+obj/
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+*.out
+*.app
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*~
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Project-specific ignores
+project/chess
+project/*.o
+project/*.exe
+
+# Lab files (Hidden temporarily by user request)
+pw*
