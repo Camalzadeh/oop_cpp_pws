@@ -25,7 +25,6 @@ Thumbs.db
 # Project-specific ignores
 project/chess
 project/*.o
-project/*.exe
 
 # Lab files (Hidden temporarily by user request)
 pw*
