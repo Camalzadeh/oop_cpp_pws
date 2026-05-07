@@ -13,6 +13,7 @@ private:
     bool hasEnPassant;
     Square enPassantTarget;
     Square enPassantPawn;
+    bool lastForceMoveHadMoved;
 
     void removePieceFromList(Piece* piece);
     void addPieceToList(Piece* piece);

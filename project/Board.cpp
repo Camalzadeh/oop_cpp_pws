@@ -6,7 +6,11 @@
 
 using namespace std;
 
-Board::Board() : hasEnPassant(false), enPassantTarget(-1, -1), enPassantPawn(-1, -1) {
+Board::Board()
+    : hasEnPassant(false),
+      enPassantTarget(-1, -1),
+      enPassantPawn(-1, -1),
+      lastForceMoveHadMoved(false) {
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
             board[row][col] = nullptr;
@@ -220,6 +224,7 @@ bool Board::isPawnPromotionMove(Piece* piece, Square destination) const {
 void Board::forceMove(Square origin, Square destination, Piece*& captured) {
     Piece* piece = getPiece(origin);
     captured = getPiece(destination);
+    lastForceMoveHadMoved = piece ? piece->getHasMoved() : false;
     if (captured) {
         removePieceFromList(captured);
     }
@@ -236,6 +241,7 @@ void Board::undoForceMove(Square origin, Square destination, Piece* captured) {
     board[destination.getRow()][destination.getCol()] = captured;
     if (piece) {
         piece->setPosition(origin, false);
+        piece->setHasMoved(lastForceMoveHadMoved);
     }
     if (captured) {
         addPieceToList(captured);
