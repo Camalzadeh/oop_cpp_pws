@@ -27,7 +27,7 @@ public:
         return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
 
-    std::string to_string() const {
+    std::string toString() const {
         std::string s = "";
         s += (char)('a' + col);
         s += (char)('1' + row);

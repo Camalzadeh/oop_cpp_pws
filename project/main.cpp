@@ -1,39 +1,55 @@
-#include "jeu.h"
+#include "Game.h"
+#include <algorithm>
 #include <iostream>
 #include <string>
 
 using namespace std;
 
-int main() {
-    Jeu monjeu;
-    string mouvement;
-    bool stop(false);
-    monjeu.affiche();
-    while (!stop) {
-        cout << "Move (eg. a1a8) ? ";
-        if (!(cin >> mouvement)) break;
+static string normalizedCastleCommand(string command) {
+    replace(command.begin(), command.end(), '0', 'O');
+    for (char& ch : command) {
+        ch = static_cast<char>(toupper(static_cast<unsigned char>(ch)));
+    }
+    return command;
+}
 
-        if (mouvement == "/quit") {
-            monjeu.set_result("?-?");
-            stop = true;
-        } else if (mouvement == "/resign") {
-            // Need to know whose turn it was to set result
-            // Simple version:
-            monjeu.set_result("?-?");
-            stop = true;
-        } else if (mouvement == "/draw") {
-            monjeu.set_result("1/2-1/2");
-            stop = true;
-        } else if (mouvement.length() == 4) {
-            string orig = mouvement.substr(0, 2);
-            string dest = mouvement.substr(2, 2);
-            monjeu.deplace(orig, dest);
-            monjeu.affiche();
+int main() {
+    Game game;
+    string moveText;
+
+    game.display();
+    while (!game.isGameOver()) {
+        cout << "Move (eg. e2e4) ? ";
+        if (!(cin >> moveText)) {
+            break;
+        }
+
+        if (moveText == "/quit") {
+            game.setResult("?-?");
+        } else if (moveText == "/draw") {
+            game.setResult("1/2-1/2");
+        } else if (moveText == "/resign") {
+            game.setResult(game.currentTurn() == White ? "0-1" : "1-0");
         } else {
-            cout << "Invalid command." << endl;
+            string castleCommand = normalizedCastleCommand(moveText);
+            if (castleCommand == "O-O") {
+                game.castle(true);
+            } else if (castleCommand == "O-O-O") {
+                game.castle(false);
+            } else if (moveText.length() == 4) {
+                string origin = moveText.substr(0, 2);
+                string destination = moveText.substr(2, 2);
+                game.move(origin, destination);
+            } else {
+                cout << "Invalid command." << endl;
+            }
+
+            if (!game.isGameOver()) {
+                game.display();
+            }
         }
     }
 
-    cout << monjeu.get_canonical() << " " << monjeu.get_result() << endl;
+    cout << endl << game.getCanonical() << " " << game.getResult() << endl;
     return 0;
 }

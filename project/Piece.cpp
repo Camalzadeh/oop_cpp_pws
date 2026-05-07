@@ -1,67 +1,87 @@
 #include "Piece.h"
-#include "Echiquier.h"
+#include "Board.h"
 #include <cmath>
 
-bool Tour::is_legal_move(Square dest, const Echiquier& board) const {
-    int dr = dest.getRow() - pos.getRow();
-    int dc = dest.getCol() - pos.getCol();
-    if (dr == 0 || dc == 0) {
-        return board.is_path_clear(pos, dest);
+std::string Piece::toString() const {
+    std::string code;
+    code += (color == White ? 'w' : 'b');
+    code += pieceCode();
+    return code;
+}
+
+bool Rook::isLegalMove(Square destination, const Board& board) const {
+    if (!destination.isValid() || destination == position) {
+        return false;
     }
-    return false;
+    return (destination.getRow() == position.getRow() ||
+            destination.getCol() == position.getCol()) &&
+           board.isPathClear(position, destination);
 }
 
-bool Cavalier::is_legal_move(Square dest, const Echiquier& board) const {
-    int dr = std::abs(dest.getRow() - pos.getRow());
-    int dc = std::abs(dest.getCol() - pos.getCol());
-    return (dr == 2 && dc == 1) || (dr == 1 && dc == 2);
-}
-
-bool Fou::is_legal_move(Square dest, const Echiquier& board) const {
-    int dr = std::abs(dest.getRow() - pos.getRow());
-    int dc = std::abs(dest.getCol() - pos.getCol());
-    if (dr == dc) {
-        return board.is_path_clear(pos, dest);
+bool Knight::isLegalMove(Square destination, const Board& board) const {
+    (void)board;
+    if (!destination.isValid() || destination == position) {
+        return false;
     }
-    return false;
+    int rowDelta = std::abs(destination.getRow() - position.getRow());
+    int colDelta = std::abs(destination.getCol() - position.getCol());
+    return (rowDelta == 2 && colDelta == 1) || (rowDelta == 1 && colDelta == 2);
 }
 
-bool Dame::is_legal_move(Square dest, const Echiquier& board) const {
-    int dr = std::abs(dest.getRow() - pos.getRow());
-    int dc = std::abs(dest.getCol() - pos.getCol());
-    if (dr == dc || dest.getRow() == pos.getRow() || dest.getCol() == pos.getCol()) {
-        return board.is_path_clear(pos, dest);
+bool Bishop::isLegalMove(Square destination, const Board& board) const {
+    if (!destination.isValid() || destination == position) {
+        return false;
     }
-    return false;
+    int rowDelta = std::abs(destination.getRow() - position.getRow());
+    int colDelta = std::abs(destination.getCol() - position.getCol());
+    return rowDelta == colDelta && board.isPathClear(position, destination);
 }
 
-bool Roi::is_legal_move(Square dest, const Echiquier& board) const {
-    int dr = std::abs(dest.getRow() - pos.getRow());
-    int dc = std::abs(dest.getCol() - pos.getCol());
-    return (dr <= 1 && dc <= 1);
+bool Queen::isLegalMove(Square destination, const Board& board) const {
+    if (!destination.isValid() || destination == position) {
+        return false;
+    }
+    int rowDelta = std::abs(destination.getRow() - position.getRow());
+    int colDelta = std::abs(destination.getCol() - position.getCol());
+    bool diagonal = rowDelta == colDelta;
+    bool straight = destination.getRow() == position.getRow() ||
+                    destination.getCol() == position.getCol();
+    return (diagonal || straight) && board.isPathClear(position, destination);
 }
 
-bool Pion::is_legal_move(Square dest, const Echiquier& board) const {
-    int r0 = pos.getRow();
-    int c0 = pos.getCol();
-    int r1 = dest.getRow();
-    int c1 = dest.getCol();
-    int direction = (color == White) ? 1 : -1;
+bool King::isLegalMove(Square destination, const Board& board) const {
+    (void)board;
+    if (!destination.isValid() || destination == position) {
+        return false;
+    }
+    int rowDelta = std::abs(destination.getRow() - position.getRow());
+    int colDelta = std::abs(destination.getCol() - position.getCol());
+    return rowDelta <= 1 && colDelta <= 1;
+}
+
+bool Pawn::isLegalMove(Square destination, const Board& board) const {
+    if (!destination.isValid() || destination == position) {
+        return false;
+    }
+
     int startRow = (color == White) ? 1 : 6;
+    int direction = (color == White) ? 1 : -1;
+    int rowDelta = destination.getRow() - position.getRow();
+    int colDelta = destination.getCol() - position.getCol();
 
-    // Simple move
-    if (c0 == c1) {
-        if (r1 == r0 + direction) {
-            return board.est_case_vide(dest);
+    if (colDelta == 0) {
+        if (rowDelta == direction) {
+            return board.isSquareEmpty(destination);
         }
-        if (r0 == startRow && r1 == r0 + 2 * direction) {
-            return board.est_case_vide(dest) && board.est_case_vide(Square(r0 + direction, c0));
+        if (position.getRow() == startRow && rowDelta == 2 * direction) {
+            Square middle(position.getRow() + direction, position.getCol());
+            return board.isSquareEmpty(middle) && board.isSquareEmpty(destination);
         }
     }
-    // Capture
-    else if (std::abs(c1 - c0) == 1 && r1 == r0 + direction) {
-        Piece* p = board.get_piece(dest);
-        return (p != nullptr && p->getColor() != color);
+
+    if (std::abs(colDelta) == 1 && rowDelta == direction) {
+        Piece* target = board.getPiece(destination);
+        return target != nullptr && target->getColor() != color;
     }
 
     return false;
