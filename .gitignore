@@ -30,3 +30,4 @@ project/*.o
 pw*
 *.zip
 .*/
+project/tests/outputs/*
