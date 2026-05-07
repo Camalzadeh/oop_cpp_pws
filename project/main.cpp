@@ -1,39 +1,42 @@
-#include "jeu.h"
+#include "Game.h"
 #include <iostream>
 #include <string>
 
 using namespace std;
 
 int main() {
-    Jeu monjeu;
-    string mouvement;
+    Game mygame;
+    string move_input;
     bool stop(false);
-    monjeu.affiche();
-    while (!stop) {
-        cout << "Move (eg. a1a8) ? ";
-        if (!(cin >> mouvement)) break;
+    
+    mygame.display();
+    
+    while (!stop && !mygame.is_game_over()) {
+        cout << mygame.get_turn_count() << ". " 
+             << (mygame.get_turn_color() == White ? "White" : "Black") 
+             << " -> (eg. d2d4) ? ";
+             
+        if (!(cin >> move_input)) break;
 
-        if (mouvement == "/quit") {
-            monjeu.set_result("?-?");
+        if (move_input == "/quit") {
+            mygame.set_result("?-?");
             stop = true;
-        } else if (mouvement == "/resign") {
-            // Need to know whose turn it was to set result
-            // Simple version:
-            monjeu.set_result("?-?");
+        } else if (move_input == "/resign") {
+            mygame.set_result(mygame.get_turn_color() == White ? "0-1" : "1-0");
             stop = true;
-        } else if (mouvement == "/draw") {
-            monjeu.set_result("1/2-1/2");
+        } else if (move_input == "/draw") {
+            mygame.set_result("1/2-1/2");
             stop = true;
-        } else if (mouvement.length() == 4) {
-            string orig = mouvement.substr(0, 2);
-            string dest = mouvement.substr(2, 2);
-            monjeu.deplace(orig, dest);
-            monjeu.affiche();
+        } else if (move_input.length() == 4) {
+            string orig = move_input.substr(0, 2);
+            string dest = move_input.substr(2, 2);
+            mygame.move(orig, dest);
+            if (!mygame.is_game_over()) mygame.display();
         } else {
             cout << "Invalid command." << endl;
         }
     }
 
-    cout << monjeu.get_canonical() << " " << monjeu.get_result() << endl;
+    cout << mygame.get_canonical() << " " << mygame.get_result() << endl;
     return 0;
 }

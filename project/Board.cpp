@@ -1,76 +1,73 @@
-#include "Echiquier.h"
+#include "Board.h"
 #include <iostream>
 #include <algorithm>
 
 using namespace std;
 
-Echiquier::Echiquier() {
+Board::Board() {
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             board[i][j] = nullptr;
         }
     }
 
-    // White pieces
     pieces[White] = {
-        new Tour(White, "\u2656", Square(0, 0)),
-        new Cavalier(White, "\u2658", Square(0, 1)),
-        new Fou(White, "\u2657", Square(0, 2)),
-        new Dame(White, "\u2655", Square(0, 3)),
-        new Roi(White, "\u2654", Square(0, 4)),
-        new Fou(White, "\u2657", Square(0, 5)),
-        new Cavalier(White, "\u2658", Square(0, 6)),
-        new Tour(White, "\u2656", Square(0, 7))
+        new Rook(White, "\u2656", Square(0, 0)),
+        new Knight(White, "\u2658", Square(0, 1)),
+        new Bishop(White, "\u2657", Square(0, 2)),
+        new Queen(White, "\u2655", Square(0, 3)),
+        new King(White, "\u2654", Square(0, 4)),
+        new Bishop(White, "\u2657", Square(0, 5)),
+        new Knight(White, "\u2658", Square(0, 6)),
+        new Rook(White, "\u2656", Square(0, 7))
     };
     for (int i = 0; i < 8; i++) {
-        pieces[White].push_back(new Pion(White, "\u2659", Square(1, i)));
+        pieces[White].push_back(new Pawn(White, "\u2659", Square(1, i)));
     }
 
-    // Black pieces
     pieces[Black] = {
-        new Tour(Black, "\u265C", Square(7, 0)),
-        new Cavalier(Black, "\u265E", Square(7, 1)),
-        new Fou(Black, "\u265D", Square(7, 2)),
-        new Dame(Black, "\u265B", Square(7, 3)),
-        new Roi(Black, "\u265A", Square(7, 4)),
-        new Fou(Black, "\u265D", Square(7, 5)),
-        new Cavalier(Black, "\u265E", Square(7, 6)),
-        new Tour(Black, "\u265C", Square(7, 7))
+        new Rook(Black, "\u265C", Square(7, 0)),
+        new Knight(Black, "\u265E", Square(7, 1)),
+        new Bishop(Black, "\u265D", Square(7, 2)),
+        new Queen(Black, "\u265B", Square(7, 3)),
+        new King(Black, "\u265A", Square(7, 4)),
+        new Bishop(Black, "\u265D", Square(7, 5)),
+        new Knight(Black, "\u265E", Square(7, 6)),
+        new Rook(Black, "\u265C", Square(7, 7))
     };
     for (int i = 0; i < 8; i++) {
-        pieces[Black].push_back(new Pion(Black, "\u265F", Square(6, i)));
+        pieces[Black].push_back(new Pawn(Black, "\u265F", Square(6, i)));
     }
 
-    for (auto p : pieces[White]) pose_piece(p, p->getPos());
-    for (auto p : pieces[Black]) pose_piece(p, p->getPos());
+    for (auto p : pieces[White]) place_piece(p, p->getPos());
+    for (auto p : pieces[Black]) place_piece(p, p->getPos());
 }
 
-Echiquier::~Echiquier() {
+Board::~Board() {
     for (auto p : pieces[White]) delete p;
     for (auto p : pieces[Black]) delete p;
 }
 
-void Echiquier::pose_piece(Piece* p, Square s) {
+void Board::place_piece(Piece* p, Square s) {
     if (s.isValid()) {
         board[s.getRow()][s.getCol()] = p;
     }
 }
 
-Piece* Echiquier::get_piece(Square s) const {
+Piece* Board::get_piece(Square s) const {
     if (s.isValid()) return board[s.getRow()][s.getCol()];
     return nullptr;
 }
 
-bool Echiquier::est_case_vide(Square s) const {
+bool Board::is_cell_empty(Square s) const {
     return get_piece(s) == nullptr;
 }
 
-void Echiquier::move(Square orig, Square dest) {
+void Board::move(Square orig, Square dest) {
     Piece* p = get_piece(orig);
     Piece* target = get_piece(dest);
 
     if (target != nullptr) {
-        // Capture
         auto& v = pieces[target->getColor()];
         v.erase(std::remove(v.begin(), v.end(), target), v.end());
         delete target;
@@ -81,7 +78,7 @@ void Echiquier::move(Square orig, Square dest) {
     p->setPos(dest);
 }
 
-bool Echiquier::is_path_clear(Square orig, Square dest) const {
+bool Board::is_path_clear(Square orig, Square dest) const {
     int r0 = orig.getRow();
     int c0 = orig.getCol();
     int r1 = dest.getRow();
@@ -93,15 +90,14 @@ bool Echiquier::is_path_clear(Square orig, Square dest) const {
     int r = r0 + dr;
     int c = c0 + dc;
     while (r != r1 || c != c1) {
-        if (!est_case_vide(Square(r, c))) return false;
+        if (!is_cell_empty(Square(r, c))) return false;
         r += dr;
         c += dc;
     }
     return true;
 }
 
-void Echiquier::affiche() const {
-    string space5 = string(5, ' ');
+void Board::display() const {
     cout << endl;
     cout << "     a     b     c     d     e     f     g     h    " << endl;
     cout << "  +-----+-----+-----+-----+-----+-----+-----+-----+" << endl;
@@ -112,14 +108,14 @@ void Echiquier::affiche() const {
             if (board[i][j]) {
                 cout << "  " << pgn_piece_name(board[i][j]->to_string(), true, true) << " ";
             } else {
-                cout << space5;
+                cout << "     ";
             }
         }
         cout << "|\n  +-----+-----+-----+-----+-----+-----+-----+-----+" << endl;
     }
 }
 
-string Echiquier::pgn_piece_name(string const name, bool view_pawn, bool view_color) const {
+string Board::pgn_piece_name(string const name, bool view_pawn, bool view_color) const {
     string psymb = "";
     if (name == "\u2656") psymb = "R";
     else if (name == "\u2658") psymb = "N";
@@ -140,12 +136,12 @@ string Echiquier::pgn_piece_name(string const name, bool view_pawn, bool view_co
     return "";
 }
 
-string Echiquier::canonical_position() const {
+string Board::canonical_position() const {
     string output = "";
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
             Square s(row, col);
-            if (!est_case_vide(s)) {
+            if (!is_cell_empty(s)) {
                 output += pgn_piece_name(get_piece(s)->to_string(), true, true);
             }
             output += ",";
@@ -154,7 +150,7 @@ string Echiquier::canonical_position() const {
     return output;
 }
 
-Square Echiquier::find_king(Color c) const {
+Square Board::find_king(Color c) const {
     for (auto p : pieces[c]) {
         if (pgn_piece_name(p->to_string(), false, false) == "K") {
             return p->getPos();
@@ -163,33 +159,31 @@ Square Echiquier::find_king(Color c) const {
     return Square(-1, -1);
 }
 
-bool Echiquier::is_square_attacked(Square s, Color attackerColor) const {
+bool Board::is_square_attacked(Square s, Color attackerColor) const {
     for (auto p : pieces[attackerColor]) {
         if (p->is_legal_move(s, *this)) return true;
     }
     return false;
 }
 
-bool Echiquier::is_check(Color kingColor) const {
+bool Board::is_check(Color kingColor) const {
     Square kingPos = find_king(kingColor);
     return is_square_attacked(kingPos, (kingColor == White ? Black : White));
 }
 
-void Echiquier::force_move(Square orig, Square dest, Piece*& captured) {
+void Board::force_move(Square orig, Square dest, Piece*& captured) {
     Piece* p = get_piece(orig);
     captured = get_piece(dest);
-    
     if (captured) {
         auto& v = pieces[captured->getColor()];
         v.erase(std::remove(v.begin(), v.end(), captured), v.end());
     }
-    
     board[dest.getRow()][dest.getCol()] = p;
     board[orig.getRow()][orig.getCol()] = nullptr;
     p->setPos(dest);
 }
 
-void Echiquier::undo_force_move(Square orig, Square dest, Piece* captured) {
+void Board::undo_force_move(Square orig, Square dest, Piece* captured) {
     Piece* p = get_piece(dest);
     board[orig.getRow()][orig.getCol()] = p;
     board[dest.getRow()][dest.getCol()] = captured;
@@ -199,7 +193,7 @@ void Echiquier::undo_force_move(Square orig, Square dest, Piece* captured) {
     }
 }
 
-bool Echiquier::has_legal_moves(Color c) {
+bool Board::has_legal_moves(Color c) {
     for (auto p : pieces[c]) {
         for (int r = 0; r < 8; r++) {
             for (int col = 0; col < 8; col++) {
@@ -207,13 +201,11 @@ bool Echiquier::has_legal_moves(Color c) {
                 if (p->is_legal_move(dest, *this)) {
                     Piece* target = get_piece(dest);
                     if (target && target->getColor() == c) continue;
-                    
                     Piece* captured = nullptr;
                     Square orig = p->getPos();
                     force_move(orig, dest, captured);
                     bool check = is_check(c);
                     undo_force_move(orig, dest, captured);
-                    
                     if (!check) return true;
                 }
             }

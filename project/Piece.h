@@ -7,7 +7,7 @@
 
 enum Color { White = 0, Black = 1 };
 
-class Echiquier;
+class Board;
 
 class Piece {
 protected:
@@ -26,44 +26,44 @@ public:
     bool getHasMoved() const { return hasMoved; }
     std::string to_string() const { return name; }
 
-    virtual void affiche() const { std::cout << name; }
-    virtual bool is_legal_move(Square dest, const Echiquier& board) const = 0;
+    virtual void display() const { std::cout << name; }
+    virtual bool is_legal_move(Square dest, const Board& board) const = 0;
 };
 
-class Tour : public Piece {
+class Rook : public Piece {
 public:
-    Tour(Color c, std::string n, Square s) : Piece(c, n, s) {}
-    bool is_legal_move(Square dest, const Echiquier& board) const override;
+    Rook(Color c, std::string n, Square s) : Piece(c, n, s) {}
+    bool is_legal_move(Square dest, const Board& board) const override;
 };
 
-class Cavalier : public Piece {
+class Knight : public Piece {
 public:
-    Cavalier(Color c, std::string n, Square s) : Piece(c, n, s) {}
-    bool is_legal_move(Square dest, const Echiquier& board) const override;
+    Knight(Color c, std::string n, Square s) : Piece(c, n, s) {}
+    bool is_legal_move(Square dest, const Board& board) const override;
 };
 
-class Fou : public Piece {
+class Bishop : public Piece {
 public:
-    Fou(Color c, std::string n, Square s) : Piece(c, n, s) {}
-    bool is_legal_move(Square dest, const Echiquier& board) const override;
+    Bishop(Color c, std::string n, Square s) : Piece(c, n, s) {}
+    bool is_legal_move(Square dest, const Board& board) const override;
 };
 
-class Dame : public Piece {
+class Queen : public Piece {
 public:
-    Dame(Color c, std::string n, Square s) : Piece(c, n, s) {}
-    bool is_legal_move(Square dest, const Echiquier& board) const override;
+    Queen(Color c, std::string n, Square s) : Piece(c, n, s) {}
+    bool is_legal_move(Square dest, const Board& board) const override;
 };
 
-class Roi : public Piece {
+class King : public Piece {
 public:
-    Roi(Color c, std::string n, Square s) : Piece(c, n, s) {}
-    bool is_legal_move(Square dest, const Echiquier& board) const override;
+    King(Color c, std::string n, Square s) : Piece(c, n, s) {}
+    bool is_legal_move(Square dest, const Board& board) const override;
 };
 
-class Pion : public Piece {
+class Pawn : public Piece {
 public:
-    Pion(Color c, std::string n, Square s) : Piece(c, n, s) {}
-    bool is_legal_move(Square dest, const Echiquier& board) const override;
+    Pawn(Color c, std::string n, Square s) : Piece(c, n, s) {}
+    bool is_legal_move(Square dest, const Board& board) const override;
 };
 
 #endif

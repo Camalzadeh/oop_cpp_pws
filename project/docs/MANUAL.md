@@ -6,10 +6,23 @@ This guide explains how to interact with the Chess engine.
 
 The game operates in a command-line loop. You enter moves or special commands at the prompt.
 
+![Board Interface Preview](board_preview.png)
+
+### Interface Explanation
+As shown in the image above:
+- The **Board** is displayed with a grid structure.
+- **Coordinates** (a-h and 1-8) are clearly marked.
+- The **Prompt** (e.g., `2. Black -> (eg. d2d4) ?`) indicates:
+  - The current move number.
+  - The player whose turn it is.
+  - An example of the expected move format.
+
+## Basic Commands
+
 - **Move a piece**: Enter the starting and ending coordinates without spaces.
   - Example: `e2e4` moves the piece at e2 to e4.
   - Example: `b1c3` moves the knight from b1 to c3.
-- **`/quit`**: Exits the game immediately. It will print the final board state in canonical form before closing.
+- **`/quit`**: Exits the game immediately and prints the final board state.
 - **`/resign`**: Forfeit the game.
 - **`/draw`**: Offer or accept a draw.
 
@@ -21,7 +34,7 @@ The board uses standard algebraic notation:
 
 ## Piece Symbols
 
-Due to terminal compatibility issues with UTF-8 symbols on some systems, the board uses the following ASCII representations:
+The board uses high-visibility ASCII representations for compatibility:
 
 | Symbol | Piece | Color |
 | :---: | :--- | :--- |
@@ -41,6 +54,7 @@ Due to terminal compatibility issues with UTF-8 symbols on some systems, the boa
 ## Gameplay Flow
 
 1. **White moves first**.
-2. If a move is illegal (wrong geometry, obstacle in the way, or leaves your King in check), the game will show an error and ask for the move again.
-3. If you put the opponent's King in check, a notification will appear.
-4. The game ends automatically upon Checkmate or Stalemate.
+2. **Turn Prompt**: The game shows the turn number and active color, e.g., `1. White -> (eg. d2d4) ?`.
+3. If a move is illegal, a relevant error message is displayed.
+4. If you put the opponent's King in check, a notification appears.
+5. The game ends automatically upon Checkmate or Stalemate.

@@ -3,17 +3,17 @@ CFLAGS=-Wall -std=c++11
 
 all: chess
 
-chess: main.o Jeu.o Echiquier.o Piece.o
-	$(CC) $(CFLAGS) -o chess main.o Jeu.o Echiquier.o Piece.o
+chess: main.o Game.o Board.o Piece.o
+	$(CC) $(CFLAGS) -o chess main.o Game.o Board.o Piece.o
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c main.cpp
 
-Jeu.o: Jeu.cpp Jeu.h
-	$(CC) $(CFLAGS) -c Jeu.cpp
+Game.o: Game.cpp Game.h
+	$(CC) $(CFLAGS) -c Game.cpp
 
-Echiquier.o: Echiquier.cpp Echiquier.h
-	$(CC) $(CFLAGS) -c Echiquier.cpp
+Board.o: Board.cpp Board.h
+	$(CC) $(CFLAGS) -c Board.cpp
 
 Piece.o: Piece.cpp Piece.h
 	$(CC) $(CFLAGS) -c Piece.cpp

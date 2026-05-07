@@ -1,8 +1,8 @@
 #include "Piece.h"
-#include "Echiquier.h"
+#include "Board.h"
 #include <cmath>
 
-bool Tour::is_legal_move(Square dest, const Echiquier& board) const {
+bool Rook::is_legal_move(Square dest, const Board& board) const {
     int dr = dest.getRow() - pos.getRow();
     int dc = dest.getCol() - pos.getCol();
     if (dr == 0 || dc == 0) {
@@ -11,13 +11,13 @@ bool Tour::is_legal_move(Square dest, const Echiquier& board) const {
     return false;
 }
 
-bool Cavalier::is_legal_move(Square dest, const Echiquier& board) const {
+bool Knight::is_legal_move(Square dest, const Board& board) const {
     int dr = std::abs(dest.getRow() - pos.getRow());
     int dc = std::abs(dest.getCol() - pos.getCol());
     return (dr == 2 && dc == 1) || (dr == 1 && dc == 2);
 }
 
-bool Fou::is_legal_move(Square dest, const Echiquier& board) const {
+bool Bishop::is_legal_move(Square dest, const Board& board) const {
     int dr = std::abs(dest.getRow() - pos.getRow());
     int dc = std::abs(dest.getCol() - pos.getCol());
     if (dr == dc) {
@@ -26,7 +26,7 @@ bool Fou::is_legal_move(Square dest, const Echiquier& board) const {
     return false;
 }
 
-bool Dame::is_legal_move(Square dest, const Echiquier& board) const {
+bool Queen::is_legal_move(Square dest, const Board& board) const {
     int dr = std::abs(dest.getRow() - pos.getRow());
     int dc = std::abs(dest.getCol() - pos.getCol());
     if (dr == dc || dest.getRow() == pos.getRow() || dest.getCol() == pos.getCol()) {
@@ -35,13 +35,13 @@ bool Dame::is_legal_move(Square dest, const Echiquier& board) const {
     return false;
 }
 
-bool Roi::is_legal_move(Square dest, const Echiquier& board) const {
+bool King::is_legal_move(Square dest, const Board& board) const {
     int dr = std::abs(dest.getRow() - pos.getRow());
     int dc = std::abs(dest.getCol() - pos.getCol());
     return (dr <= 1 && dc <= 1);
 }
 
-bool Pion::is_legal_move(Square dest, const Echiquier& board) const {
+bool Pawn::is_legal_move(Square dest, const Board& board) const {
     int r0 = pos.getRow();
     int c0 = pos.getCol();
     int r1 = dest.getRow();
@@ -49,16 +49,14 @@ bool Pion::is_legal_move(Square dest, const Echiquier& board) const {
     int direction = (color == White) ? 1 : -1;
     int startRow = (color == White) ? 1 : 6;
 
-    // Simple move
     if (c0 == c1) {
         if (r1 == r0 + direction) {
-            return board.est_case_vide(dest);
+            return board.is_cell_empty(dest);
         }
         if (r0 == startRow && r1 == r0 + 2 * direction) {
-            return board.est_case_vide(dest) && board.est_case_vide(Square(r0 + direction, c0));
+            return board.is_cell_empty(dest) && board.is_cell_empty(Square(r0 + direction, c0));
         }
     }
-    // Capture
     else if (std::abs(c1 - c0) == 1 && r1 == r0 + direction) {
         Piece* p = board.get_piece(dest);
         return (p != nullptr && p->getColor() != color);

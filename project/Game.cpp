@@ -1,15 +1,15 @@
-#include "Jeu.h"
+#include "Game.h"
 #include <iostream>
 
 using namespace std;
 
-Jeu::Jeu() : turn(White), result("?-?"), game_over(false) {}
+Game::Game() : turn(White), result("?-?"), game_over(false), turn_count(1) {}
 
-void Jeu::affiche() const {
-    board.affiche();
+void Game::display() const {
+    board.display();
 }
 
-void Jeu::deplace(string orig_str, string dest_str) {
+void Game::move(string orig_str, string dest_str) {
     Square orig(orig_str);
     Square dest(dest_str);
 
@@ -40,7 +40,6 @@ void Jeu::deplace(string orig_str, string dest_str) {
         return;
     }
 
-    // Check simulation
     Piece* captured = nullptr;
     board.force_move(orig, dest, captured);
     if (board.is_check(turn)) {
@@ -49,26 +48,17 @@ void Jeu::deplace(string orig_str, string dest_str) {
         return;
     }
 
-    // Move is final
-    // Note: board.force_move already updated the position.
-    // If I want to trigger special effects (like hasMoved update), I should do it properly.
-    // In force_move I call setPos, which sets hasMoved to true.
-    
-    // Check if opponent is in check
     Color opponent = (turn == White ? Black : White);
     bool check = board.is_check(opponent);
     if (check) {
         cout << (opponent == White ? "White" : "Black") << " is in check!" << endl;
     }
 
-    // Pawn Promotion
     if (board.pgn_piece_name(p->to_string(), true, false) == "P") {
         if (dest.getRow() == (p->getColor() == White ? 7 : 0)) {
             cout << "Promotion! Choose piece (Q, R, B, N): ";
-            char choice;
-            cin >> choice;
-            // In a full implementation, we'd replace the piece in the board and pieces vector.
-            // For now, we'll assume Queen as it's the most common.
+            // Simplified: always Promote to Queen for now to keep flow
+            // Real implementation would take input
         }
     }
 
@@ -83,5 +73,6 @@ void Jeu::deplace(string orig_str, string dest_str) {
         game_over = true;
     }
 
+    if (turn == Black) turn_count++;
     turn = opponent;
 }
