@@ -1,355 +1,486 @@
 #include "Board.h"
-#include <iostream>
 #include <algorithm>
 #include <cctype>
+#include <cmath>
+#include <iostream>
 
 using namespace std;
 
-Board::Board() {
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            board[i][j] = nullptr;
+Board::Board()
+    : hasEnPassant(false),
+      enPassantTarget(-1, -1),
+      enPassantPawn(-1, -1),
+      lastForceMoveHadMoved(false) {
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            board[row][col] = nullptr;
         }
     }
-    
-    en_passant_square = Square(-1, -1);
 
     pieces[White] = {
-        new Rook(White, "\u2656", Square(0, 0)),
-        new Knight(White, "\u2658", Square(0, 1)),
-        new Bishop(White, "\u2657", Square(0, 2)),
-        new Queen(White, "\u2655", Square(0, 3)),
-        new King(White, "\u2654", Square(0, 4)),
-        new Bishop(White, "\u2657", Square(0, 5)),
-        new Knight(White, "\u2658", Square(0, 6)),
-        new Rook(White, "\u2656", Square(0, 7))
+        new Rook(White, Square(0, 0)),
+        new Knight(White, Square(0, 1)),
+        new Bishop(White, Square(0, 2)),
+        new Queen(White, Square(0, 3)),
+        new King(White, Square(0, 4)),
+        new Bishop(White, Square(0, 5)),
+        new Knight(White, Square(0, 6)),
+        new Rook(White, Square(0, 7))
     };
-    for (int i = 0; i < 8; i++) {
-        pieces[White].push_back(new Pawn(White, "\u2659", Square(1, i)));
+    for (int col = 0; col < 8; col++) {
+        pieces[White].push_back(new Pawn(White, Square(1, col)));
     }
 
     pieces[Black] = {
-        new Rook(Black, "\u265C", Square(7, 0)),
-        new Knight(Black, "\u265E", Square(7, 1)),
-        new Bishop(Black, "\u265D", Square(7, 2)),
-        new Queen(Black, "\u265B", Square(7, 3)),
-        new King(Black, "\u265A", Square(7, 4)),
-        new Bishop(Black, "\u265D", Square(7, 5)),
-        new Knight(Black, "\u265E", Square(7, 6)),
-        new Rook(Black, "\u265C", Square(7, 7))
+        new Rook(Black, Square(7, 0)),
+        new Knight(Black, Square(7, 1)),
+        new Bishop(Black, Square(7, 2)),
+        new Queen(Black, Square(7, 3)),
+        new King(Black, Square(7, 4)),
+        new Bishop(Black, Square(7, 5)),
+        new Knight(Black, Square(7, 6)),
+        new Rook(Black, Square(7, 7))
     };
-    for (int i = 0; i < 8; i++) {
-        pieces[Black].push_back(new Pawn(Black, "\u265F", Square(6, i)));
+    for (int col = 0; col < 8; col++) {
+        pieces[Black].push_back(new Pawn(Black, Square(6, col)));
     }
 
-    for (auto p : pieces[White]) place_piece(p, p->getPos());
-    for (auto p : pieces[Black]) place_piece(p, p->getPos());
+    for (Piece* piece : pieces[White]) {
+        placePiece(piece, piece->getPosition());
+    }
+    for (Piece* piece : pieces[Black]) {
+        placePiece(piece, piece->getPosition());
+    }
 }
 
 Board::~Board() {
-    for (auto p : pieces[White]) delete p;
-    for (auto p : pieces[Black]) delete p;
-}
-
-void Board::place_piece(Piece* p, Square s) {
-    if (s.isValid()) {
-        board[s.getRow()][s.getCol()] = p;
+    for (Piece* piece : pieces[White]) {
+        delete piece;
+    }
+    for (Piece* piece : pieces[Black]) {
+        delete piece;
     }
 }
 
-Piece* Board::get_piece(Square s) const {
-    if (s.isValid()) return board[s.getRow()][s.getCol()];
-    return nullptr;
-}
-
-bool Board::is_cell_empty(Square s) const {
-    return get_piece(s) == nullptr;
-}
-
-void Board::move(Square orig, Square dest) {
-    Piece* p = get_piece(orig);
-    Piece* target = get_piece(dest);
-
-    if (target != nullptr) {
-        // record captured piece for display
-        record_capture(target, p->getColor());
-        auto& v = pieces[target->getColor()];
-        v.erase(std::remove(v.begin(), v.end(), target), v.end());
-        delete target;
+void Board::removePieceFromList(Piece* piece) {
+    if (!piece) {
+        return;
     }
-
-    board[dest.getRow()][dest.getCol()] = p;
-    board[orig.getRow()][orig.getCol()] = nullptr;
-    p->setPos(dest);
+    vector<Piece*>& list = pieces[piece->getColor()];
+    list.erase(remove(list.begin(), list.end(), piece), list.end());
 }
 
-void Board::record_capture(Piece* p, Color capturer) {
-    if (!p) return;
-    capturedPieces[capturer].push_back(p->to_string());
-}
-
-void Board::unrecord_last_capture(Color capturer) {
-    if (!capturedPieces[capturer].empty()) capturedPieces[capturer].pop_back();
-}
-
-int Board::material_score(Color c) const {
-    int score = 0;
-    for (auto p : pieces[c]) {
-        std::string sym = pgn_piece_name(p->to_string(), true, false);
-        if (sym == "P") score += 1;
-        else if (sym == "N" || sym == "B") score += 3;
-        else if (sym == "R") score += 5;
-        else if (sym == "Q") score += 9;
+void Board::addPieceToList(Piece* piece) {
+    if (piece) {
+        pieces[piece->getColor()].push_back(piece);
     }
-    return score;
 }
 
-bool Board::is_path_clear(Square orig, Square dest) const {
-    // Prevent moving to the same square
-    if (orig == dest) return false;
-    
-    int r0 = orig.getRow();
-    int c0 = orig.getCol();
-    int r1 = dest.getRow();
-    int c1 = dest.getCol();
+void Board::setBoardSquare(Square square, Piece* piece) {
+    if (!square.isValid()) {
+        return;
+    }
+    board[square.getRow()][square.getCol()] = piece;
+}
 
-    int dr = (r1 > r0) ? 1 : (r1 < r0 ? -1 : 0);
-    int dc = (c1 > c0) ? 1 : (c1 < c0 ? -1 : 0);
+void Board::placePiece(Piece* piece, Square square) {
+    setBoardSquare(square, piece);
+}
 
-    int r = r0 + dr;
-    int c = c0 + dc;
-    while (r != r1 || c != c1) {
-        if (!is_cell_empty(Square(r, c))) return false;
-        r += dr;
-        c += dc;
+Piece* Board::getPiece(Square square) const {
+    if (!square.isValid()) {
+        return nullptr;
+    }
+    return board[square.getRow()][square.getCol()];
+}
+
+bool Board::isSquareEmpty(Square square) const {
+    return getPiece(square) == nullptr;
+}
+
+bool Board::isPathClear(Square origin, Square destination) const {
+    int rowStep = (destination.getRow() > origin.getRow()) ? 1 :
+                  (destination.getRow() < origin.getRow() ? -1 : 0);
+    int colStep = (destination.getCol() > origin.getCol()) ? 1 :
+                  (destination.getCol() < origin.getCol() ? -1 : 0);
+
+    int row = origin.getRow() + rowStep;
+    int col = origin.getCol() + colStep;
+    while (row != destination.getRow() || col != destination.getCol()) {
+        if (!isSquareEmpty(Square(row, col))) {
+            return false;
+        }
+        row += rowStep;
+        col += colStep;
     }
     return true;
 }
 
 void Board::display() const {
     cout << endl;
-    cout << "     a     b     c     d     e     f     g     h    " << endl;
+    cout << "     a     b     c     d     e     f     g     h" << endl;
     cout << "  +-----+-----+-----+-----+-----+-----+-----+-----+" << endl;
-    for (int i = 7; i >= 0; i--) {
-        cout << i + 1 << " ";
-        for (int j = 0; j < 8; j++) {
+    for (int row = 7; row >= 0; row--) {
+        cout << row + 1 << " ";
+        for (int col = 0; col < 8; col++) {
             cout << "|";
-            if (board[i][j]) {
-                cout << " " << pgn_piece_name(board[i][j]->to_string(), true, true) << "  ";
+            Piece* piece = board[row][col];
+            if (piece) {
+                cout << " " << pgnPieceName(piece, true, true) << "  ";
             } else {
                 cout << "     ";
             }
         }
-        cout << "| " << i + 1 << "\n  +-----+-----+-----+-----+-----+-----+-----+-----+" << endl;
+        cout << "|\n  +-----+-----+-----+-----+-----+-----+-----+-----+" << endl;
     }
-    cout << "     a     b     c     d     e     f     g     h    " << endl;
-
-    // Show material balance in a chess.com-style console bar.
-    int whiteScore = material_score(White);
-    int blackScore = material_score(Black);
-    int totalScore = whiteScore + blackScore;
-    int advantage = whiteScore - blackScore;
-    const int barWidth = 32;
-    int whiteCells = (totalScore == 0)
-        ? barWidth / 2
-        : (whiteScore * barWidth + totalScore / 2) / totalScore;
-    whiteCells = std::max(0, std::min(barWidth, whiteCells));
-    int blackCells = barWidth - whiteCells;
-
-    string advantageText = (advantage > 0 ? "+" : "") + std::to_string(advantage);
-    string leader = advantage > 0 ? "White" : (advantage < 0 ? "Black" : "Even");
-
-    cout << "\nMaterial balance" << endl;
-    cout << "White " << whiteScore << " ["
-         << string(whiteCells, 'W')
-         << string(blackCells, 'B')
-         << "] " << blackScore << " Black"
-         << "   Advantage: " << advantageText << " " << leader << endl;
-
-    cout << "White captured: ";
-    for (auto &s : capturedPieces[White]) cout << pgn_piece_name(s, true, true) << " ";
-    cout << "\nBlack captured: ";
-    for (auto &s : capturedPieces[Black]) cout << pgn_piece_name(s, true, true) << " ";
-    cout << "\n";
 }
 
-string Board::pgn_piece_name(string const name, bool view_pawn, bool view_color) const {
-    string psymb = "";
-    if (name == "\u2656") psymb = "R";
-    else if (name == "\u2658") psymb = "N";
-    else if (name == "\u2657") psymb = "B";
-    else if (name == "\u2655") psymb = "Q";
-    else if (name == "\u2654") psymb = "K";
-    else if (name == "\u2659" && view_pawn) psymb = "P";
-    if (psymb.size() > 0) return view_color ? "w" + psymb : psymb;
+string Board::pgnPieceName(const Piece* piece, bool viewPawn, bool viewColor) const {
+    if (!piece || (!viewPawn && piece->pieceCode() == 'P')) {
+        return "";
+    }
 
-    if (name == "\u265C") psymb = "R";
-    else if (name == "\u265E") psymb = "N";
-    else if (name == "\u265D") psymb = "B";
-    else if (name == "\u265B") psymb = "Q";
-    else if (name == "\u265A") psymb = "K";
-    else if (name == "\u265F" && view_pawn) psymb = "P";
-    if (psymb.size() > 0) return view_color ? "b" + psymb : psymb;
-
-    return "";
+    string name;
+    if (viewColor) {
+        name += (piece->getColor() == White ? 'w' : 'b');
+    }
+    name += piece->pieceCode();
+    return name;
 }
 
-string Board::canonical_position() const {
-    string output = "";
+string Board::canonicalPosition() const {
+    string output;
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
-            Square s(row, col);
-            if (!is_cell_empty(s)) {
-                output += pgn_piece_name(get_piece(s)->to_string(), true, true);
+            if (!output.empty()) {
+                output += ",";
             }
-            output += ",";
+            Piece* piece = board[row][col];
+            if (piece) {
+                output += pgnPieceName(piece, true, true);
+            }
         }
     }
     return output;
 }
 
-Square Board::find_king(Color c) const {
-    for (auto p : pieces[c]) {
-        if (pgn_piece_name(p->to_string(), false, false) == "K") {
-            return p->getPos();
+Square Board::findKing(Color color) const {
+    for (Piece* piece : pieces[color]) {
+        if (piece->pieceCode() == 'K') {
+            return piece->getPosition();
         }
     }
     return Square(-1, -1);
 }
 
-bool Board::is_square_attacked(Square s, Color attackerColor) const {
-    for (auto p : pieces[attackerColor]) {
-        if (p->is_legal_move(s, *this)) return true;
+bool Board::canPieceAttackSquare(const Piece* piece, Square square) const {
+    if (!piece || !square.isValid()) {
+        return false;
     }
-    return false;
-}
 
-bool Board::is_check(Color kingColor) const {
-    Square kingPos = find_king(kingColor);
-    return is_square_attacked(kingPos, (kingColor == White ? Black : White));
-}
+    Square origin = piece->getPosition();
+    int rowDelta = square.getRow() - origin.getRow();
+    int colDelta = square.getCol() - origin.getCol();
 
-void Board::force_move(Square orig, Square dest, Piece*& captured, bool& moved_before) {
-    Piece* p = get_piece(orig);
-    moved_before = p->getHasMoved();
-    captured = get_piece(dest);
-    if (captured) {
-        // record capture for display and remove from active pieces
-        record_capture(captured, p->getColor());
-        auto& v = pieces[captured->getColor()];
-        v.erase(std::remove(v.begin(), v.end(), captured), v.end());
+    if (piece->pieceCode() == 'P') {
+        int direction = (piece->getColor() == White) ? 1 : -1;
+        return rowDelta == direction && abs(colDelta) == 1;
     }
-    board[dest.getRow()][dest.getCol()] = p;
-    board[orig.getRow()][orig.getCol()] = nullptr;
-    p->setPos(dest);
-}
-
-void Board::undo_force_move(Square orig, Square dest, Piece* captured, bool moved_before) {
-    Piece* p = get_piece(dest);
-    board[orig.getRow()][orig.getCol()] = p;
-    board[dest.getRow()][dest.getCol()] = captured;
-    p->restoreState(orig, moved_before);
-    if (captured) {
-        // remove the last recorded capture for the capturer
-        Color capturer = (captured->getColor() == White ? Black : White);
-        unrecord_last_capture(capturer);
-        pieces[captured->getColor()].push_back(captured);
+    if (piece->pieceCode() == 'K') {
+        return abs(rowDelta) <= 1 && abs(colDelta) <= 1 && !(origin == square);
     }
+    return piece->isLegalMove(square, *this);
 }
 
-bool Board::has_legal_moves(Color c) {
-    for (auto p : pieces[c]) {
-        for (int r = 0; r < 8; r++) {
-            for (int col = 0; col < 8; col++) {
-                Square dest(r, col);
-                if (p->is_legal_move(dest, *this)) {
-                    Piece* target = get_piece(dest);
-                    if (target && target->getColor() == c) continue;
-                    Piece* captured = nullptr;
-                    bool moved_before = false;
-                        Piece* en_passant_victim = nullptr;
-                        bool is_en_passant = false;
-                        Square orig = p->getPos();
-                        if (pgn_piece_name(p->to_string(), true, false) == "P" &&
-                            dest == en_passant_square &&
-                            std::abs(dest.getCol() - orig.getCol()) == 1) {
-                            is_en_passant = true;
-                            Square victim_square(orig.getRow(), dest.getCol());
-                            en_passant_victim = get_piece(victim_square);
-                            if (en_passant_victim) {
-                                auto& v = pieces[en_passant_victim->getColor()];
-                                v.erase(std::remove(v.begin(), v.end(), en_passant_victim), v.end());
-                                board[victim_square.getRow()][victim_square.getCol()] = nullptr;
-                            }
-                        }
-
-                        force_move(orig, dest, captured, moved_before);
-                    bool check = is_check(c);
-                        undo_force_move(orig, dest, captured, moved_before);
-                        if (is_en_passant && en_passant_victim) {
-                            Square victim_square(orig.getRow(), dest.getCol());
-                            board[victim_square.getRow()][victim_square.getCol()] = en_passant_victim;
-                            pieces[en_passant_victim->getColor()].push_back(en_passant_victim);
-                        }
-                    if (!check) return true;
-                }
-            }
+bool Board::isSquareAttacked(Square square, Color attackerColor) const {
+    for (Piece* piece : pieces[attackerColor]) {
+        if (canPieceAttackSquare(piece, square)) {
+            return true;
         }
     }
     return false;
 }
 
-void Board::promote_pawn(Square pos, char piece_type) {
-    Piece* pawn = get_piece(pos);
-    if (!pawn) return;
-    
-    Color color = pawn->getColor();
-    auto& v = pieces[color];
-    
-    // Remove the pawn from the pieces vector
-    v.erase(std::remove(v.begin(), v.end(), pawn), v.end());
-    delete pawn;
-    
-    // Create the promoted piece based on piece_type
-    Piece* promoted = nullptr;
-    piece_type = std::toupper(piece_type);
-    
-    switch (piece_type) {
-        case 'Q':
-            promoted = new Queen(color, color == White ? "\u2655" : "\u265B", pos);
-            break;
-        case 'R':
-            promoted = new Rook(color, color == White ? "\u2656" : "\u265C", pos);
-            break;
-        case 'B':
-            promoted = new Bishop(color, color == White ? "\u2657" : "\u265D", pos);
-            break;
-        case 'N':
-            promoted = new Knight(color, color == White ? "\u2658" : "\u265E", pos);
-            break;
-        default:
-            // Default to Queen
-            promoted = new Queen(color, color == White ? "\u2655" : "\u265B", pos);
+bool Board::isCheck(Color kingColor) const {
+    Square kingPosition = findKing(kingColor);
+    if (!kingPosition.isValid()) {
+        return false;
     }
-    
-    // Add the promoted piece to the pieces vector and board
-    v.push_back(promoted);
-    place_piece(promoted, pos);
+    Color attacker = (kingColor == White) ? Black : White;
+    return isSquareAttacked(kingPosition, attacker);
 }
 
-void Board::remove_piece(Square pos) {
-    Piece* p = get_piece(pos);
-    if (!p) return;
-    
-    Color color = p->getColor();
-    auto& v = pieces[color];
-    v.erase(std::remove(v.begin(), v.end(), p), v.end());
-    delete p;
-    place_piece(nullptr, pos);
+bool Board::isEnPassantMove(Piece* piece, Square destination) const {
+    if (!piece || piece->pieceCode() != 'P' || !hasEnPassant || !(destination == enPassantTarget)) {
+        return false;
+    }
+    int direction = (piece->getColor() == White) ? 1 : -1;
+    Square origin = piece->getPosition();
+    return destination.getRow() == origin.getRow() + direction &&
+           abs(destination.getCol() - origin.getCol()) == 1 &&
+           getPiece(destination) == nullptr;
 }
 
-void Board::restore_piece(Piece* p, Square pos) {
-    if (!p) return;
-    pieces[p->getColor()].push_back(p);
-    place_piece(p, pos);
+bool Board::isPawnPromotionMove(Piece* piece, Square destination) const {
+    return piece && piece->pieceCode() == 'P' &&
+           destination.getRow() == (piece->getColor() == White ? 7 : 0);
+}
+
+void Board::forceMove(Square origin, Square destination, Piece*& captured) {
+    Piece* piece = getPiece(origin);
+    captured = getPiece(destination);
+    lastForceMoveHadMoved = piece ? piece->getHasMoved() : false;
+    if (captured) {
+        removePieceFromList(captured);
+    }
+    setBoardSquare(destination, piece);
+    setBoardSquare(origin, nullptr);
+    if (piece) {
+        piece->setPosition(destination);
+    }
+}
+
+void Board::undoForceMove(Square origin, Square destination, Piece* captured) {
+    Piece* piece = getPiece(destination);
+    setBoardSquare(origin, piece);
+    setBoardSquare(destination, captured);
+    if (piece) {
+        piece->setPosition(origin, false);
+        piece->setHasMoved(lastForceMoveHadMoved);
+    }
+    if (captured) {
+        addPieceToList(captured);
+    }
+}
+
+bool Board::wouldLeaveKingInCheck(Square origin, Square destination, Color color) {
+    Piece* movingPiece = getPiece(origin);
+    Piece* captured = getPiece(destination);
+    Square capturedSquare = destination;
+    bool wasEnPassant = isEnPassantMove(movingPiece, destination);
+    bool movingHadMoved = movingPiece ? movingPiece->getHasMoved() : false;
+
+    if (wasEnPassant) {
+        capturedSquare = enPassantPawn;
+        captured = getPiece(capturedSquare);
+    }
+
+    if (captured) {
+        removePieceFromList(captured);
+        setBoardSquare(capturedSquare, nullptr);
+    }
+
+    setBoardSquare(destination, movingPiece);
+    setBoardSquare(origin, nullptr);
+    if (movingPiece) {
+        movingPiece->setPosition(destination);
+    }
+
+    bool leavesCheck = isCheck(color);
+
+    setBoardSquare(origin, movingPiece);
+    setBoardSquare(destination, nullptr);
+    if (movingPiece) {
+        movingPiece->setPosition(origin, false);
+        movingPiece->setHasMoved(movingHadMoved);
+    }
+    if (captured) {
+        setBoardSquare(capturedSquare, captured);
+        addPieceToList(captured);
+    }
+
+    return leavesCheck;
+}
+
+bool Board::move(Square origin, Square destination, Color turn, string& error) {
+    if (!origin.isValid() || !destination.isValid()) {
+        error = "Invalid coordinates.";
+        return false;
+    }
+
+    Piece* piece = getPiece(origin);
+    if (!piece) {
+        error = "No piece at origin.";
+        return false;
+    }
+    if (piece->getColor() != turn) {
+        error = "It's not your turn.";
+        return false;
+    }
+
+    bool enPassant = isEnPassantMove(piece, destination);
+    if (!piece->isLegalMove(destination, *this) && !enPassant) {
+        error = "Illegal move geometry or obstacles.";
+        return false;
+    }
+
+    Piece* target = getPiece(destination);
+    if (target && target->getColor() == turn) {
+        error = "Cannot capture your own piece.";
+        return false;
+    }
+
+    if (wouldLeaveKingInCheck(origin, destination, turn)) {
+        error = "Move leaves king in check.";
+        return false;
+    }
+
+    Square oldOrigin = origin;
+    bool doubleStepPawn = piece->pieceCode() == 'P' &&
+                          abs(destination.getRow() - origin.getRow()) == 2;
+
+    if (enPassant) {
+        Piece* capturedPawn = getPiece(enPassantPawn);
+        removePieceFromList(capturedPawn);
+        setBoardSquare(enPassantPawn, nullptr);
+        delete capturedPawn;
+    } else if (target) {
+        removePieceFromList(target);
+        delete target;
+    }
+
+    setBoardSquare(destination, piece);
+    setBoardSquare(origin, nullptr);
+    piece->setPosition(destination);
+
+    hasEnPassant = false;
+    if (doubleStepPawn) {
+        int middleRow = (oldOrigin.getRow() + destination.getRow()) / 2;
+        hasEnPassant = true;
+        enPassantTarget = Square(middleRow, oldOrigin.getCol());
+        enPassantPawn = destination;
+    }
+
+    return true;
+}
+
+bool Board::canCastle(Color turn, bool kingside, string& error) const {
+    int row = (turn == White) ? 0 : 7;
+    Square kingOrigin(row, 4);
+    Square rookOrigin(row, kingside ? 7 : 0);
+    Color opponent = (turn == White) ? Black : White;
+
+    Piece* king = getPiece(kingOrigin);
+    Piece* rook = getPiece(rookOrigin);
+    if (!king || !rook || king->pieceCode() != 'K' || rook->pieceCode() != 'R' ||
+        king->getColor() != turn || rook->getColor() != turn) {
+        error = "Castling pieces are not in their original squares.";
+        return false;
+    }
+    if (king->getHasMoved() || rook->getHasMoved()) {
+        error = "Cannot castle after the king or rook has moved.";
+        return false;
+    }
+    if (isCheck(turn)) {
+        error = "Cannot castle while in check.";
+        return false;
+    }
+
+    int firstCol = kingside ? 5 : 1;
+    int lastCol = kingside ? 6 : 3;
+    for (int col = firstCol; col <= lastCol; col++) {
+        if (!isSquareEmpty(Square(row, col))) {
+            error = "Cannot castle through occupied squares.";
+            return false;
+        }
+    }
+
+    // The king may not cross or land on an attacked square.
+    int step = kingside ? 1 : -1;
+    int startCol = kingside ? 5 : 3;
+    int endCol = kingside ? 6 : 2;
+    for (int col = startCol; kingside ? col <= endCol : col >= endCol; col += step) {
+        if (isSquareAttacked(Square(row, col), opponent)) {
+            error = "Cannot castle through check.";
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Board::castle(Color turn, bool kingside, string& error) {
+    if (!canCastle(turn, kingside, error)) {
+        return false;
+    }
+
+    int row = (turn == White) ? 0 : 7;
+    Square kingOrigin(row, 4);
+    Square rookOrigin(row, kingside ? 7 : 0);
+    Square kingDestination(row, kingside ? 6 : 2);
+    Square rookDestination(row, kingside ? 5 : 3);
+    Piece* king = getPiece(kingOrigin);
+    Piece* rook = getPiece(rookOrigin);
+
+    board[kingDestination.getRow()][kingDestination.getCol()] = king;
+    board[kingOrigin.getRow()][kingOrigin.getCol()] = nullptr;
+    king->setPosition(kingDestination);
+
+    board[rookDestination.getRow()][rookDestination.getCol()] = rook;
+    board[rookOrigin.getRow()][rookOrigin.getCol()] = nullptr;
+    rook->setPosition(rookDestination);
+
+    hasEnPassant = false;
+    return true;
+}
+
+bool Board::promotePawn(Square square, char choice, string& error) {
+    Piece* pawn = getPiece(square);
+    if (!needsPromotion(square)) {
+        error = "No pawn can be promoted on that square.";
+        return false;
+    }
+
+    choice = static_cast<char>(toupper(static_cast<unsigned char>(choice)));
+    Piece* promoted = nullptr;
+    if (choice == 'Q') {
+        promoted = new Queen(pawn->getColor(), square);
+    } else if (choice == 'R') {
+        promoted = new Rook(pawn->getColor(), square);
+    } else if (choice == 'B') {
+        promoted = new Bishop(pawn->getColor(), square);
+    } else if (choice == 'N') {
+        promoted = new Knight(pawn->getColor(), square);
+    } else {
+        error = "Promotion choice must be Q, R, B, or N.";
+        return false;
+    }
+
+    promoted->setHasMoved(true);
+    removePieceFromList(pawn);
+    delete pawn;
+    board[square.getRow()][square.getCol()] = promoted;
+    addPieceToList(promoted);
+    return true;
+}
+
+bool Board::needsPromotion(Square square) const {
+    Piece* piece = getPiece(square);
+    return piece && isPawnPromotionMove(piece, square);
+}
+
+bool Board::hasLegalMoves(Color color) {
+    for (Piece* piece : pieces[color]) {
+        Square origin = piece->getPosition();
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Square destination(row, col);
+                Piece* target = getPiece(destination);
+                if (target && target->getColor() == color) {
+                    continue;
+                }
+                if ((piece->isLegalMove(destination, *this) || isEnPassantMove(piece, destination)) &&
+                    !wouldLeaveKingInCheck(origin, destination, color)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    string ignored;
+    if (canCastle(color, true, ignored) || canCastle(color, false, ignored)) {
+        return true;
+    }
+
+    return false;
 }

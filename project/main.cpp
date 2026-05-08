@@ -1,86 +1,73 @@
 #include "Game.h"
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
 #include <iostream>
 #include <string>
-#include <cstdlib>
 
 using namespace std;
 
-bool is_castle_symbol(char c) {
-    return c == 'O' || c == 'o' || c == '0';
+static string normalizedCastleCommand(string command) {
+    replace(command.begin(), command.end(), '0', 'O');
+    for (char& ch : command) {
+        ch = static_cast<char>(toupper(static_cast<unsigned char>(ch)));
+    }
+    return command;
 }
 
-bool is_kingside_castle(const string& move) {
-    return move.length() == 3 &&
-           is_castle_symbol(move[0]) &&
-           move[1] == '-' &&
-           is_castle_symbol(move[2]);
-}
-
-bool is_queenside_castle(const string& move) {
-    return move.length() == 5 &&
-           is_castle_symbol(move[0]) &&
-           move[1] == '-' &&
-           is_castle_symbol(move[2]) &&
-           move[3] == '-' &&
-           is_castle_symbol(move[4]);
-}
-
-bool is_promotion_piece(char c) {
-    return c == 'Q' || c == 'q' ||
-           c == 'R' || c == 'r' ||
-           c == 'B' || c == 'b' ||
-           c == 'N' || c == 'n';
+static bool isPromotionPiece(char ch) {
+    ch = static_cast<char>(toupper(static_cast<unsigned char>(ch)));
+    return ch == 'Q' || ch == 'R' || ch == 'B' || ch == 'N';
 }
 
 int main() {
-    Game mygame;
-    string move_input;
-    bool stop(false);
-    bool quiet = std::getenv("CHESS_QUIET") != nullptr;
-    
-    if (!quiet) mygame.display();
-    
-    while (!stop && !mygame.is_game_over()) {
-        if (!quiet) {
-            cout << mygame.get_turn_count() << ". " 
-                 << (mygame.get_turn_color() == White ? "White" : "Black") 
-                 << " -> (eg. d2d4) ? ";
-        }
-             
-        if (!(cin >> move_input)) break;
+    Game game;
+    string moveText;
+    bool quiet = getenv("CHESS_QUIET") != nullptr;
 
-        if (move_input == "/quit" || move_input == "/exit") {
-            mygame.set_result("?-?");
-            stop = true;
-        } else if (move_input == "/resign") {
-            mygame.set_result(mygame.get_turn_color() == White ? "0-1" : "1-0");
-            stop = true;
-        } else if (move_input == "/draw") {
-            mygame.set_result("1/2-1/2");
-            stop = true;
-        } else if (is_kingside_castle(move_input) || is_queenside_castle(move_input)) {
-            bool whiteTurn = mygame.get_turn_color() == White;
-            string orig = whiteTurn ? "e1" : "e8";
-            string dest = is_kingside_castle(move_input)
-                ? (whiteTurn ? "g1" : "g8")
-                : (whiteTurn ? "c1" : "c8");
-            mygame.move(orig, dest);
-            if (!quiet && !mygame.is_game_over()) mygame.display();
-        } else if (move_input.length() == 4) {
-            string orig = move_input.substr(0, 2);
-            string dest = move_input.substr(2, 2);
-            mygame.move(orig, dest);
-            if (!quiet && !mygame.is_game_over()) mygame.display();
-        } else if (move_input.length() == 5 && is_promotion_piece(move_input[4])) {
-            string orig = move_input.substr(0, 2);
-            string dest = move_input.substr(2, 2);
-            mygame.move(orig, dest, move_input[4]);
-            if (!quiet && !mygame.is_game_over()) mygame.display();
+    if (!quiet) {
+        game.display();
+    }
+    while (!game.isGameOver()) {
+        if (!quiet) {
+            cout << game.currentTurnCount() << ". "
+                 << (game.currentTurn() == White ? "White" : "Black")
+                 << " -> (eg. e2e4) ? ";
+        }
+        if (!(cin >> moveText)) {
+            break;
+        }
+
+        if (moveText == "/quit" || moveText == "/exit") {
+            game.setResult("?-?");
+        } else if (moveText == "/draw") {
+            game.setResult("1/2-1/2");
+        } else if (moveText == "/resign") {
+            game.setResult(game.currentTurn() == White ? "0-1" : "1-0");
         } else {
-            cout << "Invalid command." << endl;
+            string castleCommand = normalizedCastleCommand(moveText);
+            if (castleCommand == "O-O") {
+                game.castle(true);
+            } else if (castleCommand == "O-O-O") {
+                game.castle(false);
+            } else if (moveText.length() == 4) {
+                string origin = moveText.substr(0, 2);
+                string destination = moveText.substr(2, 2);
+                game.move(origin, destination);
+            } else if (moveText.length() == 5 && isPromotionPiece(moveText[4])) {
+                string origin = moveText.substr(0, 2);
+                string destination = moveText.substr(2, 2);
+                game.move(origin, destination, moveText[4]);
+            } else {
+                cout << "Invalid command." << endl;
+            }
+
+            if (!quiet && !game.isGameOver()) {
+                game.display();
+            }
         }
     }
 
-    cout << endl << mygame.get_canonical() << " " << mygame.get_result() << endl;
+    cout << endl << game.getCanonical() << " " << game.getResult() << endl;
     return 0;
 }

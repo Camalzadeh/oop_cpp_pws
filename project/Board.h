@@ -1,8 +1,8 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include <vector>
 #include <string>
+#include <vector>
 #include "Piece.h"
 #include "Square.h"
 
@@ -10,40 +10,46 @@ class Board {
 private:
     Piece* board[8][8];
     std::vector<Piece*> pieces[2];
-    Square en_passant_square;
-    std::vector<std::string> capturedPieces[2];
+    bool hasEnPassant;
+    Square enPassantTarget;
+    Square enPassantPawn;
+    bool lastForceMoveHadMoved;
+
+    void removePieceFromList(Piece* piece);
+    void addPieceToList(Piece* piece);
+    bool isPawnPromotionMove(Piece* piece, Square destination) const;
+    bool isEnPassantMove(Piece* piece, Square destination) const;
+    bool wouldLeaveKingInCheck(Square origin, Square destination, Color color);
+    bool canPieceAttackSquare(const Piece* piece, Square square) const;
+    bool canCastle(Color turn, bool kingside, std::string& error) const;
+    void setBoardSquare(Square square, Piece* piece);
+
 public:
     Board();
     ~Board();
 
     void display() const;
-    Piece* get_piece(Square s) const;
-    void place_piece(Piece* p, Square s);
-    void move(Square orig, Square dest);
-    void record_capture(Piece* p, Color capturer);
-    void unrecord_last_capture(Color capturer);
-    const std::vector<std::string>& get_captured(Color c) const { return capturedPieces[c]; }
-    int material_score(Color c) const;
-    bool is_cell_empty(Square s) const;
-    bool is_path_clear(Square orig, Square dest) const;
-    
-    std::string canonical_position() const;
-    std::string pgn_piece_name(std::string const name, bool view_pawn, bool view_color) const;
+    Piece* getPiece(Square square) const;
+    void placePiece(Piece* piece, Square square);
+    bool move(Square origin, Square destination, Color turn, std::string& error);
+    bool castle(Color turn, bool kingside, std::string& error);
+    bool promotePawn(Square square, char choice, std::string& error);
+    bool isSquareEmpty(Square square) const;
+    bool isPathClear(Square origin, Square destination) const;
 
-    Square find_king(Color c) const;
-    bool is_square_attacked(Square s, Color attackerColor) const;
-    bool is_check(Color kingColor) const;
+    std::string canonicalPosition() const;
+    std::string pgnPieceName(const Piece* piece, bool viewPawn, bool viewColor) const;
 
-    void force_move(Square orig, Square dest, Piece*& captured, bool& moved_before);
-    void undo_force_move(Square orig, Square dest, Piece* captured, bool moved_before);
+    Square findKing(Color color) const;
+    bool isSquareAttacked(Square square, Color attackerColor) const;
+    bool isCheck(Color kingColor) const;
 
-    bool has_legal_moves(Color c);
-    void promote_pawn(Square pos, char piece_type);
-    void remove_piece(Square pos);
-    void restore_piece(Piece* p, Square pos);
-    
-    void set_en_passant_square(Square s) { en_passant_square = s; }
-    Square get_en_passant_square() const { return en_passant_square; }
+    // Reversible simulation used by check, checkmate, stalemate, and castling tests.
+    void forceMove(Square origin, Square destination, Piece*& captured);
+    void undoForceMove(Square origin, Square destination, Piece* captured);
+
+    bool hasLegalMoves(Color color);
+    bool needsPromotion(Square square) const;
 };
 
 #endif

@@ -9,20 +9,26 @@ private:
     Board board;
     Color turn;
     std::string result;
-    bool game_over;
-    int turn_count;
+    bool gameOver;
+    int turnCount;
+
+    void finishTurn();
+    bool askPromotion(Square square, char initialChoice = '\0');
 
 public:
     Game();
     void display() const;
-    void move(std::string orig, std::string dest, char promotion_choice = '\0');
-    bool is_game_over() const { return game_over; }
-    void set_result(std::string res) { result = res; game_over = true; }
-    std::string get_result() const { return result; }
-    std::string get_canonical() const { return board.canonical_position(); }
-    
-    int get_turn_count() const { return turn_count; }
-    Color get_turn_color() const { return turn; }
+    void move(std::string origin, std::string destination, char promotionChoice = '\0');
+    void castle(bool kingside);
+    Color currentTurn() const { return turn; }
+    int currentTurnCount() const { return turnCount; }
+    bool isGameOver() const { return gameOver; }
+    void setResult(std::string newResult) {
+        result = newResult;
+        gameOver = true;
+    }
+    std::string getResult() const { return result; }
+    std::string getCanonical() const { return board.canonicalPosition(); }
 };
 
 #endif

@@ -20,10 +20,10 @@ Get-Content .\test\data\1-leg-knight-1.txt | Where-Object { $_ -notmatch '^#' } 
 
 The game displays an 8x8 board with columns `a` through `h` and rows `1` through `8`. White starts at row `1`, Black starts at row `8`.
 
-The prompt shows the move number and the active side:
+The prompt shows the move number and active side:
 
 ```text
-1. White -> (eg. d2d4) ?
+1. White -> (eg. e2e4) ?
 ```
 
 ## Move Input
@@ -52,6 +52,7 @@ If a move is illegal, the board is left unchanged and the same player moves agai
 ## Special Commands
 
 - `/quit`: ends the game as interrupted, result `?-?`.
+- `/exit`: alias for `/quit`.
 - `/resign`: current player resigns.
 - `/draw`: ends the game as a draw, result `1/2-1/2`.
 
@@ -96,7 +97,7 @@ For automated UCI-style input, the program also accepts moves such as `e7e8q`.
 
 ## Piece Labels
 
-The display uses ASCII labels for compatibility with Windows terminals:
+The board display and canonical output use machine-readable labels:
 
 | Label | Piece |
 | --- | --- |
@@ -123,10 +124,11 @@ When the program exits, the last line is:
 canonical_position result
 ```
 
-Example:
+Result is exactly one of:
 
-```text
-wR,wN,wB,wQ,wK,wB,wN,wR,wP,wP,wP,wP,wP,wP,wP,wP,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,bP,bP,bP,bP,bP,bP,bP,bP,bR,bN,bB,bQ,bK,bB,bN,bR, ?-?
-```
+- `1-0`
+- `0-1`
+- `1/2-1/2`
+- `?-?`
 
-This final line is the line used by the automated test scripts.
+This final line is the line used by automated test scripts.

@@ -1,37 +1,35 @@
-# Chessboard Text-mode Game
+# Chess Project - C++ OOP Implementation
 
-This directory contains the C++ source code for the chessboard mini-project. The program provides a command-line chess interface, validates moves, handles special chess rules, and prints a canonical final position for automated testing.
+Terminal chess game for an Object-Oriented Programming course project. The program provides a command-line chess interface, validates ordinary and special chess moves, and prints a canonical final position for automated grading.
 
 ## Files
 
 - `main.cpp`: command loop, input parsing, castling notation, promotion notation, and final output.
-- `Game.h` / `Game.cpp`: game flow, turns, move validation, special moves, check, checkmate, stalemate, and results.
-- `Board.h` / `Board.cpp`: 8x8 board storage, piece placement, canonical output, attack detection, move simulation, promotion, en passant state, captured pieces, and display.
+- `Game.h` / `Game.cpp`: game flow, turns, results, promotion prompts, checkmate, and stalemate.
+- `Board.h` / `Board.cpp`: board storage, piece ownership, move execution, castling, en passant, promotion, attack detection, and canonical output.
 - `Piece.h` / `Piece.cpp`: abstract `Piece` class and concrete `Rook`, `Knight`, `Bishop`, `Queen`, `King`, and `Pawn` movement rules.
 - `Square.h`: algebraic coordinate conversion, for example `a1` to row/column indices.
-- `Makefile`: separate compilation rules.
-- `test/data/`: official level-style test files.
-- `tests/run_tests.py`: large archive regression runner.
+- `Makefile`: build rules.
+- `test/data/`: level-style test files.
+- `tests/run_tests.py`: archive regression runner.
 
 ## Build
 
-With `make`:
+In the `project` directory:
 
 ```bash
 make
 ```
 
-If `make` is not available, build directly with `g++`:
+Or compile directly:
 
 ```powershell
-g++ -Wall -std=c++11 -c main.cpp
-g++ -Wall -std=c++11 -c Game.cpp
-g++ -Wall -std=c++11 -c Board.cpp
-g++ -Wall -std=c++11 -c Piece.cpp
-g++ -Wall -std=c++11 -o chess main.o Game.o Board.o Piece.o
+g++ -std=c++17 -O2 main.cpp Board.cpp Game.cpp Piece.cpp -o chess.exe
 ```
 
 ## Run
+
+On Windows PowerShell:
 
 ```powershell
 .\chess.exe
@@ -43,62 +41,30 @@ The program reads from standard input, so it can also be driven by a file:
 Get-Content .\test\data\1-leg-knight-1.txt | Where-Object { $_ -notmatch '^#' } | .\chess.exe
 ```
 
-## Input
+## Commands
 
-Supported commands:
+- Ordinary move: `e2e4`
+- Promotion with prompt: move the pawn to the last rank, then enter `Q`, `R`, `B`, or `N`
+- UCI-style promotion: `e7e8q`, `a2a1n`, etc.
+- Kingside castling: `O-O`, `o-o`, or `0-0`
+- Queenside castling: `O-O-O`, `o-o-o`, or `0-0-0`
+- Coordinate castling: `e1g1`, `e1c1`, `e8g8`, or `e8c8`
+- Quit: `/quit`
+- Exit alias: `/exit`
+- Resign: `/resign`
+- Draw: `/draw`
 
-- Standard move: `a2a4`, `b1c3`, `e2e4`.
-- Kingside castling: `O-O`, `o-o`, or `0-0`.
-- Queenside castling: `O-O-O`, `o-o-o`, or `0-0-0`.
-- Coordinate castling is also accepted, such as `e1g1`, `e1c1`, `e8g8`, and `e8c8`.
-- Promotion prompt: after a pawn reaches the last rank, enter `Q`, `R`, `B`, or `N`.
-- UCI promotion input for automated tests: `e7e8q`, `a2a1n`, etc.
-- `/quit`: stop the game with result `?-?`.
-- `/resign`: current player resigns.
-- `/draw`: stop the game with result `1/2-1/2`.
+## Features Implemented
 
-## Display
-
-The board is printed with coordinates `a` through `h` and `1` through `8`. Pieces are displayed with ASCII labels for terminal compatibility:
-
-| Label | Piece |
-| --- | --- |
-| `wK`, `bK` | White/Black king |
-| `wQ`, `bQ` | White/Black queen |
-| `wR`, `bR` | White/Black rook |
-| `wB`, `bB` | White/Black bishop |
-| `wN`, `bN` | White/Black knight |
-| `wP`, `bP` | White/Black pawn |
-
-The display also includes a material balance bar and captured pieces. This extra display does not affect automated grading because the final line is still the canonical result line.
-
-## Implemented Requirements
-
-### Level 1: Base
-
-- Displays the chessboard and pieces.
-- Accepts ordinary coordinate moves.
-- Alternates White and Black turns.
-- Handles `/quit`, `/resign`, and `/draw`.
-- Prints the final canonical position and game result as the final line.
-- Validates board coordinates, origin occupancy, piece movement geometry, captures, pawn moves, and obstacles.
-- Rejects illegal moves without changing the board.
-
-### Level 2: Check Detection
-
-- Reports when the opponent's king is in check.
-- Rejects moves that leave the current player's king in check.
-
-### Level 3: Special Moves
-
-- En passant capture.
-- Castling with `O-O` and `O-O-O`.
+- Standard piece movement, captures, and alternating turns.
+- Obstacle blocking for rook, bishop, and queen.
+- Check detection with illegal self-check rejection.
+- Checkmate and stalemate detection.
+- Kingside and queenside castling, including occupied-square and attacked-square checks.
+- En passant.
 - Pawn promotion to queen, rook, bishop, or knight.
-
-### Level 4: Checkmate and Stalemate
-
-- Detects checkmate and sets result to `1-0` or `0-1`.
-- Detects stalemate and sets result to `1/2-1/2`.
+- English class and method names: `Game`, `Board`, `Piece`, `King`, `Queen`, `Rook`, `Bishop`, `Knight`, `Pawn`.
+- Canonical grading output with stable piece codes: `wK`, `wQ`, `wR`, `wB`, `wN`, `wP`, `bK`, `bQ`, `bR`, `bB`, `bN`, `bP`.
 
 ## Final Output
 
@@ -119,23 +85,50 @@ Each square is separated by a comma. Empty squares are blank between commas. Pie
 Example:
 
 ```text
-wR,wN,wB,wQ,wK,wB,wN,wR,wP,wP,wP,wP,wP,wP,wP,wP,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,bP,bP,bP,bP,bP,bP,bP,bP,bR,bN,bB,bQ,bK,bB,bN,bR, ?-?
+wR,wN,wB,wQ,wK,wB,wN,wR,wP,wP,wP,wP,wP,wP,wP,wP,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,bP,bP,bP,bP,bP,bP,bP,bP,bR,bN,bB,bQ,bK,bB,bN,bR ?-?
+```
+
+## Manual Test Sequences
+
+Normal moves:
+
+```text
+e2e4
+e7e5
+g1f3
+b8c6
+/quit
+```
+
+En passant:
+
+```text
+e2e4
+a7a6
+e4e5
+d7d5
+e5d6
+/quit
+```
+
+Checkmate:
+
+```text
+f2f3
+e7e5
+g2g4
+d8h4
 ```
 
 ## Tests
 
-Run the large regression suite:
+Run the archive regression suite:
 
 ```powershell
 python .\tests\run_tests.py
 ```
 
-Results are written to:
-
-- `tests/outputs/test_summary.log`
-- `tests/outputs/test_failures.log`
-
-Run the official level-style tests:
+Run the level-style tests after building `chess.exe`:
 
 ```powershell
 foreach ($level in 1..4) {
@@ -153,8 +146,7 @@ foreach ($level in 1..4) {
 }
 ```
 
-Current verification:
+## Documentation
 
-- Official level tests: passed.
-- Archive runner: `Passed: 20058, Failed: 0`.
-
+- [User Manual](docs/MANUAL.md)
+- [Architecture & Logic](docs/ARCHITECTURE.md)
