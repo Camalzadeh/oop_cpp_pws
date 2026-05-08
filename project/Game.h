@@ -13,12 +13,12 @@ private:
     int turnCount;
 
     void finishTurn();
-    bool askPromotion(Square square);
+    bool askPromotion(Square square, char initialChoice = '\0');
 
 public:
     Game();
     void display() const;
-    void move(std::string origin, std::string destination);
+    void move(std::string origin, std::string destination, char promotionChoice = '\0');
     void castle(bool kingside);
     Color currentTurn() const { return turn; }
     int currentTurnCount() const { return turnCount; }

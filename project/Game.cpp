@@ -10,7 +10,15 @@ void Game::display() const {
     board.display();
 }
 
-bool Game::askPromotion(Square square) {
+bool Game::askPromotion(Square square, char initialChoice) {
+    if (initialChoice != '\0') {
+        string error;
+        if (board.promotePawn(square, initialChoice, error)) {
+            return true;
+        }
+        cout << error << endl;
+    }
+
     while (true) {
         cout << "Promotion! Choose piece (Q, R, B, N): ";
         char choice;
@@ -53,7 +61,7 @@ void Game::finishTurn() {
     turn = opponent;
 }
 
-void Game::move(string originText, string destinationText) {
+void Game::move(string originText, string destinationText, char promotionChoice) {
     Square origin(originText);
     Square destination(destinationText);
     string error;
@@ -75,7 +83,7 @@ void Game::move(string originText, string destinationText) {
     }
 
     // Promotion replaces the pawn object before the next check/mate calculation.
-    if (board.needsPromotion(destination) && !askPromotion(destination)) {
+    if (board.needsPromotion(destination) && !askPromotion(destination, promotionChoice)) {
         return;
     }
 

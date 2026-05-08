@@ -1,47 +1,146 @@
 # Software Architecture
 
-This document describes the internal structure and logic of the Chess engine.
+This document describes how the project maps to the required object-oriented chessboard model.
 
-## Class Hierarchy
+## Class Overview
 
-### 1. `Square`
-- **Responsibility**: Represents a single cell on the 8x8 grid.
-- **Key Logic**: Converts algebraic notation (e.g., "a1") into internal row/column indices (0-7) and vice versa.
+### `Square`
 
-### 2. `Piece` (Abstract Base Class)
-- **Responsibility**: Defines the interface for all chess pieces.
-- **Inheritance**: Subclasses (`Rook`, `Knight`, `Bishop`, `Queen`, `King`, `Pawn`) implement the `isLegalMove` method.
-- **Polymorphism**: The board interacts with pieces through `Piece*` pointers, allowing dynamic resolution of movement rules.
+`Square` represents one coordinate on the 8x8 board.
 
-### 3. `Board`
-- **Responsibility**: Manages the 8x8 array of piece pointers.
-- **Key Methods**:
-  - `move()`: Executes a validated move.
-  - `isCheck()`: Determines if a King is under attack.
-  - `hasLegalMoves()`: Scans all possible moves for a side to detect Checkmate/Stalemate.
-  - `forceMove()` / `undoForceMove()`: Used for look-ahead simulations to verify if a move leaves the King in check.
-  - `castle()`: Moves the king and rook after validating castling conditions.
-  - `promotePawn()`: Replaces a promoted pawn with the selected piece type.
+Responsibilities:
 
-### 4. `Game`
-- **Responsibility**: Orchestrates the game flow.
-- **Logic**: 
-  - Validates user input.
-  - Alternates turns between White and Black.
-  - Tracks turn count for the prompt display.
-  - Checks for end-game conditions (Mate/Stale).
+- store row and column indices,
+- convert algebraic input such as `a1` into internal indices,
+- validate whether coordinates are inside the board,
+- convert a square back to text form.
 
-## Core Logic Flows
+### `Piece`
 
-### Move Validation Process
-1. Parse input string into two `Square` objects.
-2. Verify coordinates are within bounds.
-3. Verify the origin square contains a piece of the current player's color.
-4. Call `Piece::isLegalMove()` (geometric check plus obstacle check).
-5. Simulate the move through board validation.
-6. Check `Board::isCheck()` for the current player.
-7. If check exists, undo move and report error.
-8. If no check, finalize the move.
+`Piece` is an abstract base class. It stores data shared by every chess piece:
 
-### Checkmate Detection
-After every successful move, the engine calls `Board::hasLegalMoves()` for the opponent. If the opponent has no legal moves and is in check, it is checkmate. If they have no legal moves but are not in check, it is stalemate.
+- color,
+- current position,
+- whether the piece has moved.
+
+It declares the polymorphic methods:
+
+```cpp
+virtual char pieceCode() const = 0;
+virtual bool isLegalMove(Square destination, const Board& board) const = 0;
+```
+
+The concrete subclasses are:
+
+- `Rook`
+- `Knight`
+- `Bishop`
+- `Queen`
+- `King`
+- `Pawn`
+
+Each subclass implements its own movement geometry. Sliding pieces use `Board::isPathClear()` to check obstacles.
+
+### `Board`
+
+`Board` owns and manages the chessboard state.
+
+Main data:
+
+- `Piece* board[8][8]`: the actual board cells,
+- `std::vector<Piece*> pieces[2]`: active pieces for each color,
+- `hasEnPassant`, `enPassantTarget`, and `enPassantPawn`: en passant state,
+- `lastForceMoveHadMoved`: state saved for reversible simulations.
+
+Main responsibilities:
+
+- initialize the starting position,
+- place and retrieve pieces,
+- execute ordinary moves and captures,
+- validate and execute castling,
+- track and execute en passant,
+- promote pawns,
+- detect attacks and checks,
+- generate the canonical final position,
+- simulate and undo moves for legality checking,
+- search legal moves for checkmate and stalemate detection.
+
+### `Game`
+
+`Game` coordinates the rules and user-level game flow.
+
+Responsibilities:
+
+- track the current turn and move number,
+- execute requested moves through `Board`,
+- reject illegal moves without changing the turn,
+- prompt for promotion when needed,
+- detect check, checkmate, and stalemate after legal moves,
+- maintain the game result.
+
+### `main.cpp`
+
+`main.cpp` handles the command-line loop:
+
+- reads standard input,
+- parses commands such as `/quit`, `/exit`, `/resign`, and `/draw`,
+- parses ordinary moves like `e2e4`,
+- parses castling notation `O-O` and `O-O-O`,
+- parses UCI-style promotion notation such as `e7e8q`,
+- prints the final canonical line.
+
+## Move Validation Flow
+
+1. Convert origin and destination strings to `Square` objects.
+2. Verify both coordinates are valid.
+3. Verify the origin contains a piece.
+4. Verify the piece belongs to the current player.
+5. Call the piece's polymorphic `isLegalMove()` method, or detect an en passant exception.
+6. Reject captures of friendly pieces.
+7. Simulate the move and reject it if it leaves the moving side's king in check.
+8. Execute captures, en passant removal, or the ordinary move.
+9. Promote a pawn if it reaches the final rank.
+10. Check whether the opponent is in check.
+11. Check whether the opponent has legal moves.
+12. Set checkmate or stalemate result if needed.
+13. Switch turns.
+
+## Special Move Handling
+
+### Castling
+
+`Board::canCastle()` verifies that the king and rook are on their starting squares, neither piece has moved, the king is not currently in check, the path is empty, and the king does not cross or land on an attacked square. `Board::castle()` then moves both pieces.
+
+The input parser accepts `O-O`, `o-o`, `0-0`, `O-O-O`, `o-o-o`, and `0-0-0`. Coordinate forms such as `e1g1` and `e8c8` are also handled because a two-column king move is routed to castling.
+
+### En Passant
+
+When a pawn moves two squares, the square it crossed is stored as `enPassantTarget` and the pawn itself is stored as `enPassantPawn`. On the next move only, an opposing pawn may capture diagonally into the target square, and the passed pawn is removed.
+
+### Promotion
+
+When a pawn reaches row 8 for White or row 1 for Black, it is replaced by a new `Queen`, `Rook`, `Bishop`, or `Knight` object. The choice is provided either by an interactive prompt or by UCI-style input like `a7a8q`.
+
+## Checkmate and Stalemate
+
+After every legal move, the game checks whether the opponent is in check and whether the opponent has at least one legal move.
+
+- No legal move and in check: checkmate.
+- No legal move and not in check: stalemate.
+
+The search is implemented by trying possible destination squares for each active piece and simulating moves with `wouldLeaveKingInCheck()`.
+
+## Canonical Position
+
+`Board::canonicalPosition()` traverses:
+
+```text
+a1,b1,c1,d1,e1,f1,g1,h1,a2,b2,...,h8
+```
+
+Each square is encoded as:
+
+- `w` or `b` for color,
+- `K`, `Q`, `R`, `B`, `N`, or `P` for piece type,
+- empty text for an empty square,
+- comma separators between squares.
