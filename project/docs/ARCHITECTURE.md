@@ -13,7 +13,6 @@ Responsibilities:
 - store row and column indices,
 - convert algebraic input such as `a1` into internal indices,
 - validate whether coordinates are inside the board,
-- convert a square back to text form.
 
 ### `Piece`
 
