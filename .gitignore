@@ -21,6 +21,7 @@ obj/
 # Operating System Files
 .DS_Store
 Thumbs.db
+._*
 
 # Project-specific ignores
 project/chess

@@ -1,6 +1,7 @@
 #include "Board.h"
 #include <iostream>
 #include <algorithm>
+#include <cctype>
 
 using namespace std;
 
@@ -10,6 +11,8 @@ Board::Board() {
             board[i][j] = nullptr;
         }
     }
+    
+    en_passant_square = Square(-1, -1);
 
     pieces[White] = {
         new Rook(White, "\u2656", Square(0, 0)),
@@ -68,6 +71,8 @@ void Board::move(Square orig, Square dest) {
     Piece* target = get_piece(dest);
 
     if (target != nullptr) {
+        // record captured piece for display
+        record_capture(target, p->getColor());
         auto& v = pieces[target->getColor()];
         v.erase(std::remove(v.begin(), v.end(), target), v.end());
         delete target;
@@ -78,7 +83,31 @@ void Board::move(Square orig, Square dest) {
     p->setPos(dest);
 }
 
+void Board::record_capture(Piece* p, Color capturer) {
+    if (!p) return;
+    capturedPieces[capturer].push_back(p->to_string());
+}
+
+void Board::unrecord_last_capture(Color capturer) {
+    if (!capturedPieces[capturer].empty()) capturedPieces[capturer].pop_back();
+}
+
+int Board::material_score(Color c) const {
+    int score = 0;
+    for (auto p : pieces[c]) {
+        std::string sym = pgn_piece_name(p->to_string(), true, false);
+        if (sym == "P") score += 1;
+        else if (sym == "N" || sym == "B") score += 3;
+        else if (sym == "R") score += 5;
+        else if (sym == "Q") score += 9;
+    }
+    return score;
+}
+
 bool Board::is_path_clear(Square orig, Square dest) const {
+    // Prevent moving to the same square
+    if (orig == dest) return false;
+    
     int r0 = orig.getRow();
     int c0 = orig.getCol();
     int r1 = dest.getRow();
@@ -106,13 +135,42 @@ void Board::display() const {
         for (int j = 0; j < 8; j++) {
             cout << "|";
             if (board[i][j]) {
-                cout << "  " << pgn_piece_name(board[i][j]->to_string(), true, true) << " ";
+                cout << " " << pgn_piece_name(board[i][j]->to_string(), true, true) << "  ";
             } else {
                 cout << "     ";
             }
         }
-        cout << "|\n  +-----+-----+-----+-----+-----+-----+-----+-----+" << endl;
+        cout << "| " << i + 1 << "\n  +-----+-----+-----+-----+-----+-----+-----+-----+" << endl;
     }
+    cout << "     a     b     c     d     e     f     g     h    " << endl;
+
+    // Show material balance in a chess.com-style console bar.
+    int whiteScore = material_score(White);
+    int blackScore = material_score(Black);
+    int totalScore = whiteScore + blackScore;
+    int advantage = whiteScore - blackScore;
+    const int barWidth = 32;
+    int whiteCells = (totalScore == 0)
+        ? barWidth / 2
+        : (whiteScore * barWidth + totalScore / 2) / totalScore;
+    whiteCells = std::max(0, std::min(barWidth, whiteCells));
+    int blackCells = barWidth - whiteCells;
+
+    string advantageText = (advantage > 0 ? "+" : "") + std::to_string(advantage);
+    string leader = advantage > 0 ? "White" : (advantage < 0 ? "Black" : "Even");
+
+    cout << "\nMaterial balance" << endl;
+    cout << "White " << whiteScore << " ["
+         << string(whiteCells, 'W')
+         << string(blackCells, 'B')
+         << "] " << blackScore << " Black"
+         << "   Advantage: " << advantageText << " " << leader << endl;
+
+    cout << "White captured: ";
+    for (auto &s : capturedPieces[White]) cout << pgn_piece_name(s, true, true) << " ";
+    cout << "\nBlack captured: ";
+    for (auto &s : capturedPieces[Black]) cout << pgn_piece_name(s, true, true) << " ";
+    cout << "\n";
 }
 
 string Board::pgn_piece_name(string const name, bool view_pawn, bool view_color) const {
@@ -171,10 +229,13 @@ bool Board::is_check(Color kingColor) const {
     return is_square_attacked(kingPos, (kingColor == White ? Black : White));
 }
 
-void Board::force_move(Square orig, Square dest, Piece*& captured) {
+void Board::force_move(Square orig, Square dest, Piece*& captured, bool& moved_before) {
     Piece* p = get_piece(orig);
+    moved_before = p->getHasMoved();
     captured = get_piece(dest);
     if (captured) {
+        // record capture for display and remove from active pieces
+        record_capture(captured, p->getColor());
         auto& v = pieces[captured->getColor()];
         v.erase(std::remove(v.begin(), v.end(), captured), v.end());
     }
@@ -183,12 +244,15 @@ void Board::force_move(Square orig, Square dest, Piece*& captured) {
     p->setPos(dest);
 }
 
-void Board::undo_force_move(Square orig, Square dest, Piece* captured) {
+void Board::undo_force_move(Square orig, Square dest, Piece* captured, bool moved_before) {
     Piece* p = get_piece(dest);
     board[orig.getRow()][orig.getCol()] = p;
     board[dest.getRow()][dest.getCol()] = captured;
-    p->setPos(orig);
+    p->restoreState(orig, moved_before);
     if (captured) {
+        // remove the last recorded capture for the capturer
+        Color capturer = (captured->getColor() == White ? Black : White);
+        unrecord_last_capture(capturer);
         pieces[captured->getColor()].push_back(captured);
     }
 }
@@ -202,14 +266,90 @@ bool Board::has_legal_moves(Color c) {
                     Piece* target = get_piece(dest);
                     if (target && target->getColor() == c) continue;
                     Piece* captured = nullptr;
-                    Square orig = p->getPos();
-                    force_move(orig, dest, captured);
+                    bool moved_before = false;
+                        Piece* en_passant_victim = nullptr;
+                        bool is_en_passant = false;
+                        Square orig = p->getPos();
+                        if (pgn_piece_name(p->to_string(), true, false) == "P" &&
+                            dest == en_passant_square &&
+                            std::abs(dest.getCol() - orig.getCol()) == 1) {
+                            is_en_passant = true;
+                            Square victim_square(orig.getRow(), dest.getCol());
+                            en_passant_victim = get_piece(victim_square);
+                            if (en_passant_victim) {
+                                auto& v = pieces[en_passant_victim->getColor()];
+                                v.erase(std::remove(v.begin(), v.end(), en_passant_victim), v.end());
+                                board[victim_square.getRow()][victim_square.getCol()] = nullptr;
+                            }
+                        }
+
+                        force_move(orig, dest, captured, moved_before);
                     bool check = is_check(c);
-                    undo_force_move(orig, dest, captured);
+                        undo_force_move(orig, dest, captured, moved_before);
+                        if (is_en_passant && en_passant_victim) {
+                            Square victim_square(orig.getRow(), dest.getCol());
+                            board[victim_square.getRow()][victim_square.getCol()] = en_passant_victim;
+                            pieces[en_passant_victim->getColor()].push_back(en_passant_victim);
+                        }
                     if (!check) return true;
                 }
             }
         }
     }
     return false;
+}
+
+void Board::promote_pawn(Square pos, char piece_type) {
+    Piece* pawn = get_piece(pos);
+    if (!pawn) return;
+    
+    Color color = pawn->getColor();
+    auto& v = pieces[color];
+    
+    // Remove the pawn from the pieces vector
+    v.erase(std::remove(v.begin(), v.end(), pawn), v.end());
+    delete pawn;
+    
+    // Create the promoted piece based on piece_type
+    Piece* promoted = nullptr;
+    piece_type = std::toupper(piece_type);
+    
+    switch (piece_type) {
+        case 'Q':
+            promoted = new Queen(color, color == White ? "\u2655" : "\u265B", pos);
+            break;
+        case 'R':
+            promoted = new Rook(color, color == White ? "\u2656" : "\u265C", pos);
+            break;
+        case 'B':
+            promoted = new Bishop(color, color == White ? "\u2657" : "\u265D", pos);
+            break;
+        case 'N':
+            promoted = new Knight(color, color == White ? "\u2658" : "\u265E", pos);
+            break;
+        default:
+            // Default to Queen
+            promoted = new Queen(color, color == White ? "\u2655" : "\u265B", pos);
+    }
+    
+    // Add the promoted piece to the pieces vector and board
+    v.push_back(promoted);
+    place_piece(promoted, pos);
+}
+
+void Board::remove_piece(Square pos) {
+    Piece* p = get_piece(pos);
+    if (!p) return;
+    
+    Color color = p->getColor();
+    auto& v = pieces[color];
+    v.erase(std::remove(v.begin(), v.end(), p), v.end());
+    delete p;
+    place_piece(nullptr, pos);
+}
+
+void Board::restore_piece(Piece* p, Square pos) {
+    if (!p) return;
+    pieces[p->getColor()].push_back(p);
+    place_piece(p, pos);
 }
