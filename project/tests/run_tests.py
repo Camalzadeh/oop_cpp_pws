@@ -4,6 +4,10 @@ import subprocess
 import os
 import sys
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+CHESS_EXE = os.path.join(PROJECT_DIR, 'chess.exe')
+
 def san_to_coords(moves_san, board):
     coords_moves = []
     for move_san in moves_san.split():
@@ -18,13 +22,16 @@ def san_to_coords(moves_san, board):
 def run_test_game(game_id, moves):
     input_str = "\n".join(moves) + "\n/quit\n"
     try:
+        env = os.environ.copy()
+        env['CHESS_QUIET'] = '1'
         process = subprocess.Popen(
-            ['..\\chess.exe'], 
+            [CHESS_EXE], 
             stdin=subprocess.PIPE, 
             stdout=subprocess.PIPE, 
             stderr=subprocess.PIPE,
             text=True,
-            cwd='..'
+            cwd=PROJECT_DIR,
+            env=env
         )
         stdout, stderr = process.communicate(input=input_str, timeout=15)
         
@@ -35,7 +42,8 @@ def run_test_game(game_id, moves):
             "It's not your turn", 
             "Illegal move", 
             "Cannot capture", 
-            "Move leaves king in check"
+            "Move leaves king in check",
+            "Invalid command"
         ]
         
         failed = False
@@ -51,10 +59,11 @@ def run_test_game(game_id, moves):
         return True, str(e), "Execution Error"
 
 if __name__ == "__main__":
-    if not os.path.exists('outputs'):
-        os.makedirs('outputs')
+    outputs_dir = os.path.join(SCRIPT_DIR, 'outputs')
+    if not os.path.exists(outputs_dir):
+        os.makedirs(outputs_dir)
 
-    csv_path = os.path.join('archive', 'games.csv')
+    csv_path = os.path.join(SCRIPT_DIR, 'archive', 'games.csv')
     if not os.path.exists(csv_path):
         print(f"Error: {csv_path} not found.")
         sys.exit(1)
@@ -63,8 +72,8 @@ if __name__ == "__main__":
     total_games = len(df)
     print(f"Starting test for {total_games} games...")
 
-    summary_file = os.path.join('outputs', 'test_summary.log')
-    failures_file = os.path.join('outputs', 'test_failures.log')
+    summary_file = os.path.join(outputs_dir, 'test_summary.log')
+    failures_file = os.path.join(outputs_dir, 'test_failures.log')
     
     with open(summary_file, 'w') as f_sum, open(failures_file, 'w', encoding='utf-8') as f_fail:
         f_sum.write(f"CHESS TEST SUMMARY - TOTAL GAMES: {total_games}\n")

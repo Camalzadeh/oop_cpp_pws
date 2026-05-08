@@ -1,60 +1,132 @@
-# Chess Game - User Manual
+# Chess Game User Manual
 
-This guide explains how to interact with the Chess engine.
+This guide explains how to build, run, and use the text-mode chess program.
 
-## Basic Commands
+## Starting the Program
 
-The game operates in a command-line loop. You enter moves or special commands at the prompt.
+From the project directory:
 
-![Board Interface Preview](board_preview.png)
+```powershell
+.\chess.exe
+```
 
-### Interface Explanation
-As shown in the image above:
-- The **Board** is displayed with a grid structure.
-- **Coordinates** (a-h and 1-8) are clearly marked.
-- The **Prompt** (e.g., `2. Black -> (eg. d2d4) ?`) indicates:
-  - The current move number.
-  - The player whose turn it is.
-  - An example of the expected move format.
+The program can also read from standard input:
 
-## Basic Commands
+```powershell
+Get-Content .\test\data\1-leg-knight-1.txt | Where-Object { $_ -notmatch '^#' } | .\chess.exe
+```
 
-- **Move a piece**: Enter the starting and ending coordinates without spaces.
-  - Example: `e2e4` moves the piece at e2 to e4.
-  - Example: `b1c3` moves the knight from b1 to c3.
-- **`/quit`**: Exits the game immediately and prints the final board state.
-- **`/resign`**: Forfeit the game.
-- **`/draw`**: Offer or accept a draw.
+## Interface
 
-## Board Coordinate System
+The game displays an 8x8 board with columns `a` through `h` and rows `1` through `8`. White starts at row `1`, Black starts at row `8`.
 
-The board uses standard algebraic notation:
-- **Columns**: `a` to `h` (from left to right).
-- **Rows**: `1` to `8` (from White's side to Black's side).
+The prompt shows the move number and the active side:
 
-## Piece Symbols
+```text
+1. White -> (eg. d2d4) ?
+```
 
-The board uses high-visibility ASCII representations for compatibility:
+## Move Input
 
-| Symbol | Piece | Color |
-| :---: | :--- | :--- |
-| `wP` | Pawn | White |
-| `wR` | Rook | White |
-| `wN` | Knight | White |
-| `wB` | Bishop | White |
-| `wQ` | Queen | White |
-| `wK` | King | White |
-| `bP` | Pawn | Black |
-| `bR` | Rook | Black |
-| `bN` | Knight | Black |
-| `bB` | Bishop | Black |
-| `bQ` | Queen | Black |
-| `bK` | King | Black |
+Enter moves using origin and destination coordinates:
 
-## Gameplay Flow
+```text
+e2e4
+b1c3
+a7a5
+```
 
-1. **White moves first**.
-2. **Turn Prompt**: The game shows the turn number and active color, e.g., `1. White -> (eg. d2d4) ?`.
-3. If a move is illegal, a relevant error message is displayed.
-4. If you put the opponent's King in check, a notification appears.
-5. The game ends automatically upon Checkmate or Stalemate.
+The program checks:
+
+- coordinates are inside the board,
+- the origin contains a piece,
+- the piece belongs to the current player,
+- the movement geometry is legal,
+- sliding pieces do not jump over pieces,
+- pawns move and capture correctly,
+- a move does not capture a friendly piece,
+- a move does not leave the moving side's king in check.
+
+If a move is illegal, the board is left unchanged and the same player moves again.
+
+## Special Commands
+
+- `/quit`: ends the game as interrupted, result `?-?`.
+- `/resign`: current player resigns.
+- `/draw`: ends the game as a draw, result `1/2-1/2`.
+
+## Special Moves
+
+### Castling
+
+Kingside castling:
+
+```text
+O-O
+```
+
+Queenside castling:
+
+```text
+O-O-O
+```
+
+The parser also accepts lowercase `o` and zero `0`, for example `0-0`. Coordinate forms such as `e1g1`, `e1c1`, `e8g8`, and `e8c8` are also supported.
+
+### En Passant
+
+En passant is supported when a pawn has just advanced two squares and an opposing pawn can capture it as if it had advanced one square.
+
+### Promotion
+
+When a pawn reaches the final rank, the program asks:
+
+```text
+Promotion! Choose piece (Q, R, B, N):
+```
+
+Enter one of:
+
+- `Q`: queen
+- `R`: rook
+- `B`: bishop
+- `N`: knight
+
+For automated UCI-style input, the program also accepts moves such as `e7e8q`.
+
+## Piece Labels
+
+The display uses ASCII labels for compatibility with Windows terminals:
+
+| Label | Piece |
+| --- | --- |
+| `wK`, `bK` | White/Black king |
+| `wQ`, `bQ` | White/Black queen |
+| `wR`, `bR` | White/Black rook |
+| `wB`, `bB` | White/Black bishop |
+| `wN`, `bN` | White/Black knight |
+| `wP`, `bP` | White/Black pawn |
+
+## Check, Checkmate, and Stalemate
+
+After a legal move:
+
+- the program reports if the opponent is in check,
+- checkmate ends the game with `1-0` or `0-1`,
+- stalemate ends the game with `1/2-1/2`.
+
+## Final Line for Testing
+
+When the program exits, the last line is:
+
+```text
+canonical_position result
+```
+
+Example:
+
+```text
+wR,wN,wB,wQ,wK,wB,wN,wR,wP,wP,wP,wP,wP,wP,wP,wP,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,bP,bP,bP,bP,bP,bP,bP,bP,bR,bN,bB,bQ,bK,bB,bN,bR, ?-?
+```
+
+This final line is the line used by the automated test scripts.

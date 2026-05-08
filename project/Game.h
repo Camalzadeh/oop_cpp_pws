@@ -15,7 +15,7 @@ private:
 public:
     Game();
     void display() const;
-    void move(std::string orig, std::string dest);
+    void move(std::string orig, std::string dest, char promotion_choice = '\0');
     bool is_game_over() const { return game_over; }
     void set_result(std::string res) { result = res; game_over = true; }
     std::string get_result() const { return result; }

@@ -24,6 +24,7 @@ public:
     Square getPos() const { return pos; }
     void setPos(Square s) { pos = s; hasMoved = true; }
     bool getHasMoved() const { return hasMoved; }
+    void restoreState(Square s, bool moved) { pos = s; hasMoved = moved; }
     std::string to_string() const { return name; }
 
     virtual void display() const { std::cout << name; }

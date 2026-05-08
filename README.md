@@ -1,33 +1,83 @@
-# Object-Oriented Programming (C++) Lab & Project Repository
+# Mini-project Object Programming: Chessboard
 
-This repository contains a series of laboratory exercises (PWs) and a final Chessboard project, following the Object-Oriented Programming course by Ali Ayadi.
+This repository contains a text-mode chess program written in C++ for the Object Programming mini-project. The program reads moves from standard input, updates an internal chessboard model, displays the position, and prints the final canonical position plus the game result on the last output line.
 
-## Repository Structure
+The implementation is in [`project/`](project/).
 
-- `pw1/`: **Fraction Class** - Basic encapsulation, constructors, and operator overloading. Includes a Java port.
-- `pw3/`: **Library Management** - Inheritance, references, and complex object relationships.
-- `pw4/`: **Sentence (Bug Hunt)** - Memory management, Rule of Three, and deep vs. shallow copying.
-- `pw5/`: **Template Array** - C++ Templates, `std::initializer_list`, and exception handling.
-- `pw6/`: **Rental Agency** - Advanced inheritance, polymorphism, and dynamic binding. Includes a Java port.
-- `project/`: **Chessboard Mini-Project** - A full-featured terminal-based Chess engine implemented using core OOP principles.
+## Implemented Levels
 
-## Getting Started
+- **Level 1: Base**
+  - Text-mode board display.
+  - Algebraic coordinate moves such as `b1c3` and `e2e4`.
+  - White/Black turn alternation.
+  - `/quit`, `/resign`, and `/draw`.
+  - Final canonical position and result output.
+  - Coordinate, origin-square, movement-geometry, capture, pawn, and obstacle validation.
+- **Level 2: Check Detection**
+  - Detects when a king is in check.
+  - Rejects moves that leave the moving side's king in check.
+- **Level 3: Special Moves**
+  - Castling with `O-O` and `O-O-O`, plus coordinate forms such as `e1g1`.
+  - En passant.
+  - Pawn promotion to `Q`, `R`, `B`, or `N`.
+  - UCI-style promotion input such as `e7e8q` is supported for tests.
+- **Level 4: Endgame Detection**
+  - Checkmate detection and final result.
+  - Stalemate detection and final result.
 
-Each directory contains its own source code and build instructions. Generally, you can compile the C++ files using `g++`.
+## Build and Run
 
-For example, to run the final project:
-1. Navigate to the `project` directory.
-2. Run `make` (if available) or `g++ *.cpp -o chess`.
-3. Execute `./chess`.
+From PowerShell:
 
-## Features Implemented
+```powershell
+cd D:\oop_project\oop_cpp_pws\project
+g++ -Wall -std=c++11 -c main.cpp
+g++ -Wall -std=c++11 -c Game.cpp
+g++ -Wall -std=c++11 -c Board.cpp
+g++ -Wall -std=c++11 -c Piece.cpp
+g++ -Wall -std=c++11 -o chess main.o Game.o Board.o Piece.o
+.\chess.exe
+```
 
-- Encapsulation & Data Hiding
-- Constructor/Destructor Management
-- Operator Overloading (Arithmetic, I/O, Indexing)
-- Template Classes
-- Polymorphism (Virtual functions, Abstract classes)
-- Resource Management (Deep copying, Rule of Three)
+On a Unix-like environment with `make`:
 
----
-*Created by Ali Ayadi - Lab Exercises Implementation*
+```bash
+cd project
+make
+./chess
+```
+
+## Test Commands
+
+Run the large archive test runner:
+
+```powershell
+cd D:\oop_project\oop_cpp_pws\project
+python .\tests\run_tests.py
+```
+
+Run the official level-style text tests:
+
+```powershell
+cd D:\oop_project\oop_cpp_pws\project
+
+foreach ($level in 1..4) {
+    foreach ($file in Get-ChildItem ".\test\data\$level-*.txt" | Where-Object { $_.Name -notlike '._*' }) {
+        $output = Get-Content $file.FullName | Where-Object { $_ -notmatch '^#' } | .\chess.exe
+        $actual = $output | Select-Object -Last 1
+        $expected = Get-Content $file.FullName | Select-Object -Last 1
+
+        if ($actual -eq $expected) {
+            "OK   $($file.Name)"
+        } else {
+            "FAIL $($file.Name)"
+        }
+    }
+}
+```
+
+Current verification:
+
+- Official level tests: passed.
+- Archive runner: `Passed: 20058, Failed: 0`.
+
