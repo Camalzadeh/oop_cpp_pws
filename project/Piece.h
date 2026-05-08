@@ -33,6 +33,7 @@ public:
 
     virtual char pieceCode() const = 0;
     virtual std::string toString() const;
+    virtual std::string displaySymbol() const;
     virtual void display() const { std::cout << toString(); }
     virtual bool isLegalMove(Square destination, const Board& board) const = 0;
 };

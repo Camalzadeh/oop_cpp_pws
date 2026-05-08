@@ -4,6 +4,9 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 using namespace std;
 
@@ -21,6 +24,10 @@ static bool isPromotionPiece(char ch) {
 }
 
 int main() {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
     Game game;
     string moveText;
     bool quiet = getenv("CHESS_QUIET") != nullptr;

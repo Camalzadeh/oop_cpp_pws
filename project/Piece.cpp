@@ -9,6 +9,29 @@ std::string Piece::toString() const {
     return code;
 }
 
+std::string Piece::displaySymbol() const {
+    if (color == White) {
+        switch (pieceCode()) {
+            case 'K': return "♔";
+            case 'Q': return "♕";
+            case 'R': return "♖";
+            case 'B': return "♗";
+            case 'N': return "♘";
+            case 'P': return "♙";
+        }
+    } else {
+        switch (pieceCode()) {
+            case 'K': return "♚";
+            case 'Q': return "♛";
+            case 'R': return "♜";
+            case 'B': return "♝";
+            case 'N': return "♞";
+            case 'P': return "♟";
+        }
+    }
+    return toString();
+}
+
 bool Rook::isLegalMove(Square destination, const Board& board) const {
     if (!destination.isValid() || destination == position) {
         return false;

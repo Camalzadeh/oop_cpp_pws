@@ -126,7 +126,7 @@ void Board::display() const {
             cout << "|";
             Piece* piece = board[row][col];
             if (piece) {
-                cout << " " << pgnPieceName(piece, true, true) << "  ";
+                cout << "  " << piece->displaySymbol() << "  ";
             } else {
                 cout << "     ";
             }
