@@ -7,14 +7,33 @@ Terminal chess game for an Object-Oriented Programming course project.
 In the `project` directory:
 
 ```bash
+make
+```
+
+Or compile directly:
+
+```bash
 g++ -std=c++17 -O2 *.cpp -o chess.exe
 ```
 
-On Linux or macOS with `make` installed:
+Run the game:
 
 ```bash
-make
+./chess
 ```
+
+On Windows PowerShell:
+
+```powershell
+.\chess.exe
+```
+
+## Documentation
+
+Detailed documentation is available in the `docs/` folder:
+
+1. [User Manual](docs/MANUAL.md): How to play, commands, and coordinate system.
+2. [Architecture & Logic](docs/ARCHITECTURE.md): Breakdown of classes and core algorithms.
 
 ## Commands
 
@@ -167,10 +186,13 @@ The final line printed by the program is the grading line:
 canonical_position result
 ```
 
-## Technical Highlights
+## Features Implemented
 
-- English class and method names: `Game`, `Board`, `King`, `Queen`, `Rook`, `Bishop`, `Knight`, `Pawn`.
-- Polymorphic piece movement through `isLegalMove`.
-- Reversible move simulation for check, checkmate, stalemate, castling safety, and en passant safety.
+- Standard piece movement, captures, and turn validation.
+- Check detection with illegal self-check rejection.
+- Checkmate and stalemate detection.
+- Kingside and queenside castling, including attacked-square checks.
+- En passant.
 - Real pawn promotion to Queen, Rook, Bishop, or Knight.
-- Canonical grading output uses stable piece codes: `wK`, `wQ`, `wR`, `wB`, `wN`, `wP`, `bK`, `bQ`, `bR`, `bB`, `bN`, `bP`.
+- English class and method names: `Game`, `Board`, `King`, `Queen`, `Rook`, `Bishop`, `Knight`, `Pawn`.
+- Canonical grading output with stable piece codes: `wK`, `wQ`, `wR`, `wB`, `wN`, `wP`, `bK`, `bQ`, `bR`, `bB`, `bN`, `bP`.

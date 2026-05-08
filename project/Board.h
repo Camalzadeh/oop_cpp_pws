@@ -22,6 +22,7 @@ private:
     bool wouldLeaveKingInCheck(Square origin, Square destination, Color color);
     bool canPieceAttackSquare(const Piece* piece, Square square) const;
     bool canCastle(Color turn, bool kingside, std::string& error) const;
+    void setBoardSquare(Square square, Piece* piece);
 
 public:
     Board();

@@ -10,6 +10,7 @@ private:
     Color turn;
     std::string result;
     bool gameOver;
+    int turnCount;
 
     void finishTurn();
     bool askPromotion(Square square);
@@ -20,6 +21,7 @@ public:
     void move(std::string origin, std::string destination);
     void castle(bool kingside);
     Color currentTurn() const { return turn; }
+    int currentTurnCount() const { return turnCount; }
     bool isGameOver() const { return gameOver; }
     void setResult(std::string newResult) {
         result = newResult;

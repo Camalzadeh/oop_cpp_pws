@@ -76,10 +76,15 @@ void Board::addPieceToList(Piece* piece) {
     }
 }
 
-void Board::placePiece(Piece* piece, Square square) {
-    if (square.isValid()) {
-        board[square.getRow()][square.getCol()] = piece;
+void Board::setBoardSquare(Square square, Piece* piece) {
+    if (!square.isValid()) {
+        return;
     }
+    board[square.getRow()][square.getCol()] = piece;
+}
+
+void Board::placePiece(Piece* piece, Square square) {
+    setBoardSquare(square, piece);
 }
 
 Piece* Board::getPiece(Square square) const {
@@ -228,8 +233,8 @@ void Board::forceMove(Square origin, Square destination, Piece*& captured) {
     if (captured) {
         removePieceFromList(captured);
     }
-    board[destination.getRow()][destination.getCol()] = piece;
-    board[origin.getRow()][origin.getCol()] = nullptr;
+    setBoardSquare(destination, piece);
+    setBoardSquare(origin, nullptr);
     if (piece) {
         piece->setPosition(destination);
     }
@@ -237,8 +242,8 @@ void Board::forceMove(Square origin, Square destination, Piece*& captured) {
 
 void Board::undoForceMove(Square origin, Square destination, Piece* captured) {
     Piece* piece = getPiece(destination);
-    board[origin.getRow()][origin.getCol()] = piece;
-    board[destination.getRow()][destination.getCol()] = captured;
+    setBoardSquare(origin, piece);
+    setBoardSquare(destination, captured);
     if (piece) {
         piece->setPosition(origin, false);
         piece->setHasMoved(lastForceMoveHadMoved);
@@ -262,25 +267,25 @@ bool Board::wouldLeaveKingInCheck(Square origin, Square destination, Color color
 
     if (captured) {
         removePieceFromList(captured);
-        board[capturedSquare.getRow()][capturedSquare.getCol()] = nullptr;
+        setBoardSquare(capturedSquare, nullptr);
     }
 
-    board[destination.getRow()][destination.getCol()] = movingPiece;
-    board[origin.getRow()][origin.getCol()] = nullptr;
+    setBoardSquare(destination, movingPiece);
+    setBoardSquare(origin, nullptr);
     if (movingPiece) {
         movingPiece->setPosition(destination);
     }
 
     bool leavesCheck = isCheck(color);
 
-    board[origin.getRow()][origin.getCol()] = movingPiece;
-    board[destination.getRow()][destination.getCol()] = nullptr;
+    setBoardSquare(origin, movingPiece);
+    setBoardSquare(destination, nullptr);
     if (movingPiece) {
         movingPiece->setPosition(origin, false);
         movingPiece->setHasMoved(movingHadMoved);
     }
     if (captured) {
-        board[capturedSquare.getRow()][capturedSquare.getCol()] = captured;
+        setBoardSquare(capturedSquare, captured);
         addPieceToList(captured);
     }
 
@@ -327,15 +332,15 @@ bool Board::move(Square origin, Square destination, Color turn, string& error) {
     if (enPassant) {
         Piece* capturedPawn = getPiece(enPassantPawn);
         removePieceFromList(capturedPawn);
-        board[enPassantPawn.getRow()][enPassantPawn.getCol()] = nullptr;
+        setBoardSquare(enPassantPawn, nullptr);
         delete capturedPawn;
     } else if (target) {
         removePieceFromList(target);
         delete target;
     }
 
-    board[destination.getRow()][destination.getCol()] = piece;
-    board[origin.getRow()][origin.getCol()] = nullptr;
+    setBoardSquare(destination, piece);
+    setBoardSquare(origin, nullptr);
     piece->setPosition(destination);
 
     hasEnPassant = false;

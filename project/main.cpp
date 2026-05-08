@@ -1,5 +1,6 @@
 #include "Game.h"
 #include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <string>
 
@@ -19,7 +20,9 @@ int main() {
 
     game.display();
     while (!game.isGameOver()) {
-        cout << "Move (eg. e2e4) ? ";
+        cout << game.currentTurnCount() << ". "
+             << (game.currentTurn() == White ? "White" : "Black")
+             << " -> (eg. e2e4) ? ";
         if (!(cin >> moveText)) {
             break;
         }

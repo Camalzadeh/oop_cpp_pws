@@ -4,7 +4,7 @@
 
 using namespace std;
 
-Game::Game() : turn(White), result("?-?"), gameOver(false) {}
+Game::Game() : turn(White), result("?-?"), gameOver(false), turnCount(1) {}
 
 void Game::display() const {
     board.display();
@@ -47,6 +47,9 @@ void Game::finishTurn() {
         return;
     }
 
+    if (turn == Black) {
+        turnCount++;
+    }
     turn = opponent;
 }
 
@@ -54,6 +57,17 @@ void Game::move(string originText, string destinationText) {
     Square origin(originText);
     Square destination(destinationText);
     string error;
+
+    int colDelta = destination.getCol() - origin.getCol();
+    if (origin.isValid() && destination.isValid() &&
+        origin.getRow() == destination.getRow() &&
+        (colDelta == 2 || colDelta == -2)) {
+        Piece* piece = board.getPiece(origin);
+        if (piece && piece->getColor() == turn && piece->pieceCode() == 'K') {
+            castle(colDelta > 0);
+            return;
+        }
+    }
 
     if (!board.move(origin, destination, turn, error)) {
         cout << error << endl;

@@ -28,3 +28,6 @@ project/*.o
 
 # Lab files (Hidden temporarily by user request)
 pw*
+*.zip
+.*/
+project/tests/outputs/*
