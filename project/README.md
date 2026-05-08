@@ -436,8 +436,3 @@ Additional documentation is available in:
 - [User Manual](docs/MANUAL.md)
 - [Architecture & Logic](docs/ARCHITECTURE.md)
 
-## Notes
-
-Generated executables such as `chess.exe`, `chess_test.exe`, or `chess_unicode.exe` should not be committed.
-
-Generated test logs should also be avoided in final commits unless explicitly required.
