@@ -62,9 +62,10 @@ int main() {
                 cout << "Invalid command." << endl;
             }
 
-            if (!quiet && !game.isGameOver()) {
+            if (!quiet) {
                 game.display();
             }
+            game.flushStatusMessages();
         }
     }
 

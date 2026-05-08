@@ -2,6 +2,7 @@
 #define GAME_H
 
 #include <string>
+#include <vector>
 #include "Board.h"
 
 class Game {
@@ -11,6 +12,7 @@ private:
     std::string result;
     bool gameOver;
     int turnCount;
+    std::vector<std::string> pendingStatusMessages;
 
     void finishTurn();
     bool askPromotion(Square square, char initialChoice = '\0');
@@ -18,6 +20,7 @@ private:
 public:
     Game();
     void display() const;
+    void flushStatusMessages();
     void move(std::string origin, std::string destination, char promotionChoice = '\0');
     void castle(bool kingside);
     Color currentTurn() const { return turn; }

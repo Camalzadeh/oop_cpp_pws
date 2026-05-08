@@ -10,6 +10,13 @@ void Game::display() const {
     board.display();
 }
 
+void Game::flushStatusMessages() {
+    for (const string& message : pendingStatusMessages) {
+        cout << message << endl;
+    }
+    pendingStatusMessages.clear();
+}
+
 bool Game::askPromotion(Square square, char initialChoice) {
     if (initialChoice != '\0') {
         string error;
@@ -40,15 +47,17 @@ void Game::finishTurn() {
     Color opponent = (turn == White) ? Black : White;
     bool check = board.isCheck(opponent);
     if (check) {
-        cout << (opponent == White ? "White" : "Black") << " is in check!" << endl;
+        pendingStatusMessages.push_back(
+            string(opponent == White ? "White" : "Black") + " is in check!");
     }
 
     if (!board.hasLegalMoves(opponent)) {
         if (check) {
-            cout << "Checkmate! " << (turn == White ? "White" : "Black") << " wins." << endl;
+            pendingStatusMessages.push_back(
+                string("Checkmate! ") + (turn == White ? "White" : "Black") + " wins.");
             result = (turn == White) ? "1-0" : "0-1";
         } else {
-            cout << "Stalemate! It's a draw." << endl;
+            pendingStatusMessages.push_back("Stalemate! It's a draw.");
             result = "1/2-1/2";
         }
         gameOver = true;

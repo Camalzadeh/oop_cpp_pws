@@ -11,7 +11,7 @@ Terminal chess game for an Object-Oriented Programming course project. The progr
 - `Square.h`: algebraic coordinate conversion, for example `a1` to row/column indices.
 - `Makefile`: build rules.
 - `test/data/`: level-style test files.
-- `tests/run_tests.py`: archive regression runner.
+- `tests/run_tests.py`: automated regression test runner.
 
 ## Build
 
